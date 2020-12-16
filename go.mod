@@ -2,7 +2,7 @@ module unscrabble
 
 go 1.15
 
-replace example.com/unscrabble => ../my_module
+replace example.com/unscrabble => ../GoUnscrabble
 
 require (
 	example.com/unscrabble v0.0.0-00010101000000-000000000000

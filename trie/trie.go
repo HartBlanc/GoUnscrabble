@@ -91,9 +91,9 @@ func (trie *Trie) Delete(word string) bool {
 	return true
 }
 
-// CrossSet returns all letters '?' for which there is a word in the
+// ValidLettersBetweenPrefixAndSuffix returns all letters '?' for which there is a word in the
 // lexicon that look like: '{prefix}?{suffix}'.
-func (trie *Trie) CrossSet(prefix, suffix string) map[rune]struct{} {
+func (trie *Trie) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[rune]struct{} {
 
 	crossSet := make(map[rune]struct{}, 0)
 	currNode := trie.Root
@@ -124,7 +124,7 @@ func (trie *Trie) CrossSet(prefix, suffix string) map[rune]struct{} {
 				break
 			}
 		}
-		if suffixOkay && currNode.Terminal{
+		if suffixOkay && currNode.Terminal {
 			crossSet[crossChar] = struct{}{}
 		}
 	}
@@ -135,8 +135,8 @@ func (trie *Trie) CrossSet(prefix, suffix string) map[rune]struct{} {
 func New() *Trie {
 	return &Trie{
 		Root: &Node{
-			Label: "",
-			Terminal: false,
+			Label:     "",
+			Terminal:  false,
 			NextNodes: map[rune]*Node{},
 		},
 	}

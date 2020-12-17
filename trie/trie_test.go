@@ -406,11 +406,11 @@ func TestDelete(t *testing.T) {
 	})
 }
 
-func TestCrossSet(t *testing.T) {
+func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 	trie := createTrie()
 
 	t.Run("empty prefix", func(t *testing.T) {
-		crossSet := trie.CrossSet("", "bc")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "bc")
 		assert.Equal(
 			t,
 			map[rune]struct{}{
@@ -420,7 +420,7 @@ func TestCrossSet(t *testing.T) {
 		)
 	})
 	t.Run("empty suffix", func(t *testing.T) {
-		crossSet := trie.CrossSet("ab", "")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("ab", "")
 		assert.Equal(
 			t,
 			map[rune]struct{}{
@@ -430,7 +430,7 @@ func TestCrossSet(t *testing.T) {
 		)
 	})
 	t.Run("empty prefix and empty suffix returns single letter words", func(t *testing.T) {
-		crossSet := trie.CrossSet("", "")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "")
 		assert.Equal(
 			t,
 			map[rune]struct{}{},
@@ -438,15 +438,15 @@ func TestCrossSet(t *testing.T) {
 		)
 		// add "a" as a single letter word.
 		trie.Root.NextNodes['a'].Terminal = true
-		crossSet = trie.CrossSet("", "")
-			assert.Equal(
+		crossSet = trie.ValidLettersBetweenPrefixAndSuffix("", "")
+		assert.Equal(
 			t,
 			map[rune]struct{}{'a': {}},
 			crossSet,
 		)
 	})
 	t.Run("prefix and suffix", func(t *testing.T) {
-		crossSet := trie.CrossSet("ab", "d")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("ab", "d")
 		assert.Equal(
 			t,
 			map[rune]struct{}{
@@ -456,7 +456,7 @@ func TestCrossSet(t *testing.T) {
 		)
 	})
 	t.Run("break in suffix", func(t *testing.T) {
-		crossSet := trie.CrossSet("", "g")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "g")
 		assert.Equal(
 			t,
 			map[rune]struct{}{},
@@ -464,7 +464,7 @@ func TestCrossSet(t *testing.T) {
 		)
 	})
 	t.Run("break in prefix", func(t *testing.T) {
-		crossSet := trie.CrossSet("g", "")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("g", "")
 		assert.Equal(
 			t,
 			map[rune]struct{}{},
@@ -472,7 +472,7 @@ func TestCrossSet(t *testing.T) {
 		)
 	})
 	t.Run("no cross chars ", func(t *testing.T) {
-		crossSet := trie.CrossSet("ef", "")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("ef", "")
 		assert.Equal(
 			t,
 			map[rune]struct{}{},

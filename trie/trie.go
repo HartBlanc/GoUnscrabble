@@ -91,6 +91,46 @@ func (trie *Trie) Delete(word string) bool {
 	return true
 }
 
+// CrossSet returns all letters '?' for which there is a word in the
+// lexicon that look like: '{prefix}?{suffix}'.
+func (trie *Trie) CrossSet(prefix, suffix string) map[rune]struct{} {
+
+	crossSet := make(map[rune]struct{}, 0)
+	currNode := trie.Root
+	prefixOkay := true
+
+	for _, prefixChar := range prefix {
+		currNode, prefixOkay = currNode.NextNodes[prefixChar]
+
+		// All placed prefixes of length > 1 should be valid words,
+		// and therefore contained in lexicon.
+		// However, in theory at least, a single character
+		// could be placed as part of an across word, and there
+		// could be no valid words in the lexicon that start with this
+		// word. Here we take a precautionary approach to allow for
+		// unanticipated use cases.
+		if !prefixOkay {
+			return crossSet
+		}
+	}
+
+	crossNode := currNode
+
+	for crossChar, currNode := range crossNode.NextNodes {
+		suffixOkay := true
+		for _, suffixChar := range suffix {
+			currNode, suffixOkay = currNode.NextNodes[suffixChar]
+			if !suffixOkay {
+				break
+			}
+		}
+		if suffixOkay && currNode.Terminal{
+			crossSet[crossChar] = struct{}{}
+		}
+	}
+	return crossSet
+}
+
 // New returns a pointer to a new empty Trie.
 func New() *Trie {
 	return &Trie{

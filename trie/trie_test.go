@@ -406,6 +406,81 @@ func TestDelete(t *testing.T) {
 	})
 }
 
+func TestCrossSet(t *testing.T) {
+	trie := createTrie()
+
+	t.Run("empty prefix", func(t *testing.T) {
+		crossSet := trie.CrossSet("", "bc")
+		assert.Equal(
+			t,
+			map[rune]struct{}{
+				'a': {},
+			},
+			crossSet,
+		)
+	})
+	t.Run("empty suffix", func(t *testing.T) {
+		crossSet := trie.CrossSet("ab", "")
+		assert.Equal(
+			t,
+			map[rune]struct{}{
+				'c': {},
+			},
+			crossSet,
+		)
+	})
+	t.Run("empty prefix and empty suffix returns single letter words", func(t *testing.T) {
+		crossSet := trie.CrossSet("", "")
+		assert.Equal(
+			t,
+			map[rune]struct{}{},
+			crossSet,
+		)
+		// add "a" as a single letter word.
+		trie.Root.NextNodes['a'].Terminal = true
+		crossSet = trie.CrossSet("", "")
+			assert.Equal(
+			t,
+			map[rune]struct{}{'a': {}},
+			crossSet,
+		)
+	})
+	t.Run("prefix and suffix", func(t *testing.T) {
+		crossSet := trie.CrossSet("ab", "d")
+		assert.Equal(
+			t,
+			map[rune]struct{}{
+				'c': {},
+			},
+			crossSet,
+		)
+	})
+	t.Run("break in suffix", func(t *testing.T) {
+		crossSet := trie.CrossSet("", "g")
+		assert.Equal(
+			t,
+			map[rune]struct{}{},
+			crossSet,
+		)
+	})
+	t.Run("break in prefix", func(t *testing.T) {
+		crossSet := trie.CrossSet("g", "")
+		assert.Equal(
+			t,
+			map[rune]struct{}{},
+			crossSet,
+		)
+	})
+	t.Run("no cross chars ", func(t *testing.T) {
+		crossSet := trie.CrossSet("ef", "")
+		assert.Equal(
+			t,
+			map[rune]struct{}{},
+			crossSet,
+		)
+	})
+}
+
 func createTrie() *Trie {
 	dNode := &Node{
 		Label:     "abcd",

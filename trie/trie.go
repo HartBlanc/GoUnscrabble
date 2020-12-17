@@ -65,7 +65,7 @@ func (trie *Trie) Delete(word string) bool {
 	}
 
 	var prefixWordTerminalNode *Node
-	var suffixInitialChar rune 
+	var suffixInitialChar rune
 	currNode := trie.Root
 
 	for i, char := range word {
@@ -75,7 +75,6 @@ func (trie *Trie) Delete(word string) bool {
 		}
 		currNode = currNode.NextNodes[char]
 	}
-
 	if prefixWordTerminalNode == nil {
 		if len(currNode.NextNodes) == 0 {
 			delete(
@@ -92,7 +91,7 @@ func (trie *Trie) Delete(word string) bool {
 }
 
 // ValidLettersBetweenPrefixAndSuffix returns all letters '?' for which there is a word in the
-// lexicon that look like: '{prefix}?{suffix}'.
+// trie that looks like: '{prefix}?{suffix}'.
 func (trie *Trie) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[rune]struct{} {
 
 	crossSet := make(map[rune]struct{}, 0)

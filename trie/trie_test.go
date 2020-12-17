@@ -193,35 +193,7 @@ func TestInsertSameWordTwice(t *testing.T) {
 
 func TestContains(t *testing.T) {
 
-	dNode := &Node{
-		Label:     "abcd",
-		Terminal:  true,
-		NextNodes: map[rune]*Node{},
-	}
-	cNode := &Node{
-		Label:     "abc",
-		Terminal:  false,
-		NextNodes: map[rune]*Node{'d': dNode},
-	}
-	bNode := &Node{
-		Label:     "ab",
-		Terminal:  false,
-		NextNodes: map[rune]*Node{'c': cNode},
-	}
-	aNode := &Node{
-		Label:     "a",
-		Terminal:  false,
-		NextNodes: map[rune]*Node{'b': bNode},
-	}
-
-	trie := &Trie{
-		Root: &Node{
-			Label:     "",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'a': aNode},
-		},
-	}
-
+	trie := createTrie()
 	testCases := []struct {
 		Name             string
 		Word             string
@@ -229,12 +201,12 @@ func TestContains(t *testing.T) {
 	}{
 		{
 			Name:             "present and terminal",
-			Word:             "abcd",
+			Word:             "dog",
 			ExpectedContains: true,
 		},
 		{
 			Name:             "present but not terminal",
-			Word:             "abc",
+			Word:             "ea",
 			ExpectedContains: false,
 		},
 		{
@@ -280,127 +252,39 @@ func TestDelete(t *testing.T) {
 	t.Run("word has prefix", func(t *testing.T) {
 
 		trie := createTrie()
-		assert.True(t, trie.Delete("abcd"))
-		cNode := &Node{
-			Label:     "abc",
-			Terminal:  true,
-			NextNodes: map[rune]*Node{},
-		}
-		bNode := &Node{
-			Label:     "ab",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'c': cNode},
-		}
-		aNode := &Node{
-			Label:     "a",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'b': bNode},
-		}
-		fNode := &Node{
-			Label:     "ef",
-			Terminal:  true,
-			NextNodes: map[rune]*Node{},
-		}
-		eNode := &Node{
-			Label:     "e",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'f': fNode},
-		}
+		assert.True(t, trie.Delete("cars"))
+		expectedTrie := createTrie()
+		delete(expectedTrie.Root.NextNodes['c'].NextNodes['a'].NextNodes['r'].NextNodes, 's')
 		assert.Equal(
 			t,
-			&Trie{
-				Root: &Node{
-					Label:     "",
-					Terminal:  false,
-					NextNodes: map[rune]*Node{'a': aNode, 'e': eNode},
-				},
-			},
+			expectedTrie,
 			trie,
 		)
 	})
 
 	t.Run("word is prefix", func(t *testing.T) {
-
-		dNode := &Node{
-			Label:     "abcd",
-			Terminal:  true,
-			NextNodes: map[rune]*Node{},
-		}
-		cNode := &Node{
-			Label:     "abc",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'d': dNode},
-		}
-		bNode := &Node{
-			Label:     "ab",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'c': cNode},
-		}
-		aNode := &Node{
-			Label:     "a",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'b': bNode},
-		}
-		fNode := &Node{
-			Label:     "ef",
-			Terminal:  true,
-			NextNodes: map[rune]*Node{},
-		}
-		eNode := &Node{
-			Label:     "e",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'f': fNode},
-		}
-
 		trie := createTrie()
-		assert.True(t, trie.Delete("abc"))
+		assert.True(t, trie.Delete("car"))
+
+		expectedTrie := createTrie()
+		expectedTrie.Root.NextNodes['c'].NextNodes['a'].NextNodes['r'].Terminal = false
 		assert.Equal(
 			t,
-			&Trie{
-				Root: &Node{
-					Label:     "",
-					Terminal:  false,
-					NextNodes: map[rune]*Node{'a': aNode, 'e': eNode},
-				},
-			},
+			expectedTrie,
 			trie,
 		)
 	})
 
 	t.Run("no prefixes", func(t *testing.T) {
-
-		dNode := &Node{
-			Label:     "abcd",
-			Terminal:  true,
-			NextNodes: map[rune]*Node{},
-		}
-		cNode := &Node{
-			Label:     "abc",
-			Terminal:  true,
-			NextNodes: map[rune]*Node{'d': dNode},
-		}
-		bNode := &Node{
-			Label:     "ab",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'c': cNode},
-		}
-		aNode := &Node{
-			Label:     "a",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'b': bNode},
-		}
-
 		trie := createTrie()
-		trie.Delete("ef")
+		trie.Delete("be")
+
+		expectedTrie := createTrie()
+		delete(expectedTrie.Root.NextNodes, 'b')
+
 		assert.Equal(
 			t,
-			&Trie{
-				Root: &Node{
-					Label:     "",
-					Terminal:  false,
-					NextNodes: map[rune]*Node{'a': aNode},
-				},
-			},
+			expectedTrie,
 			trie,
 		)
 	})
@@ -410,21 +294,21 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 	trie := createTrie()
 
 	t.Run("empty prefix", func(t *testing.T) {
-		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "bc")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "o")
 		assert.Equal(
 			t,
 			map[rune]struct{}{
-				'a': {},
+				'd': {},
 			},
 			crossSet,
 		)
 	})
 	t.Run("empty suffix", func(t *testing.T) {
-		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("ab", "")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("do", "")
 		assert.Equal(
 			t,
 			map[rune]struct{}{
-				'c': {},
+				'g': {},
 			},
 			crossSet,
 		)
@@ -433,30 +317,23 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "")
 		assert.Equal(
 			t,
-			map[rune]struct{}{},
-			crossSet,
-		)
-		// add "a" as a single letter word.
-		trie.Root.NextNodes['a'].Terminal = true
-		crossSet = trie.ValidLettersBetweenPrefixAndSuffix("", "")
-		assert.Equal(
-			t,
 			map[rune]struct{}{'a': {}},
 			crossSet,
 		)
 	})
 	t.Run("prefix and suffix", func(t *testing.T) {
-		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("ab", "d")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("ca", "s")
 		assert.Equal(
 			t,
 			map[rune]struct{}{
-				'c': {},
+				'r': {},
+				't': {},
 			},
 			crossSet,
 		)
 	})
 	t.Run("break in suffix", func(t *testing.T) {
-		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "g")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "z")
 		assert.Equal(
 			t,
 			map[rune]struct{}{},
@@ -464,7 +341,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		)
 	})
 	t.Run("break in prefix", func(t *testing.T) {
-		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("g", "")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("z", "")
 		assert.Equal(
 			t,
 			map[rune]struct{}{},
@@ -472,7 +349,15 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		)
 	})
 	t.Run("no cross chars ", func(t *testing.T) {
-		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("ef", "")
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("a", "")
+		assert.Equal(
+			t,
+			map[rune]struct{}{},
+			crossSet,
+		)
+	})
+	t.Run("final suffix node is not terminal", func(t *testing.T) {
+		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("d", "n")
 		assert.Equal(
 			t,
 			map[rune]struct{}{},
@@ -482,45 +367,123 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 }
 
 func createTrie() *Trie {
-	dNode := &Node{
-		Label:     "abcd",
+	carsNode := &Node{
+		Label:     "cars",
 		Terminal:  true,
 		NextNodes: map[rune]*Node{},
 	}
-
+	catsNode := &Node{
+		Label:     "cats",
+		Terminal:  true,
+		NextNodes: map[rune]*Node{},
+	}
+	carNode := &Node{
+		Label:     "car",
+		Terminal:  true,
+		NextNodes: map[rune]*Node{'s': carsNode},
+	}
+	catNode := &Node{
+		Label:     "cat",
+		Terminal:  true,
+		NextNodes: map[rune]*Node{'s': catsNode},
+	}
+	caNode := &Node{
+		Label:     "ca",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{'r': carNode, 't': catNode},
+	}
 	cNode := &Node{
-		Label:     "abc",
-		Terminal:  true,
-		NextNodes: map[rune]*Node{'d': dNode},
-	}
-	bNode := &Node{
-		Label:     "ab",
+		Label:     "c",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'c': cNode},
+		NextNodes: map[rune]*Node{'a': caNode},
 	}
-	aNode := &Node{
-		Label:     "a",
-		Terminal:  false,
-		NextNodes: map[rune]*Node{'b': bNode},
-	}
-	fNode := &Node{
-		Label:     "ef",
+	dogsNode := &Node{
+		Label:     "dogs",
 		Terminal:  true,
 		NextNodes: map[rune]*Node{},
+	}
+	dogNode := &Node{
+		Label:     "dog",
+		Terminal:  true,
+		NextNodes: map[rune]*Node{'s': dogsNode},
+	}
+	doneNode := &Node{
+		Label:     "done",
+		Terminal:  true,
+		NextNodes: map[rune]*Node{},
+	}
+	donNode := &Node{
+		Label:     "don",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{'e': doneNode},
+	}
+	doNode := &Node{
+		Label:     "do",
+		Terminal:  true,
+		NextNodes: map[rune]*Node{'n': donNode, 'g': dogNode},
+	}
+	dNode := &Node{
+		Label:     "d",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{'o': doNode},
+	}
+	earsNode := &Node{
+		Label:     "ears",
+		Terminal:  true,
+		NextNodes: map[rune]*Node{},
+	}
+	earNode := &Node{
+		Label:     "ear",
+		Terminal:  true,
+		NextNodes: map[rune]*Node{'s': earsNode},
+	}
+	eatsNode := &Node{
+		Label:     "eats",
+		Terminal:  true,
+		NextNodes: map[rune]*Node{},
+	}
+	eatNode := &Node{
+		Label:     "eat",
+		Terminal:  true,
+		NextNodes: map[rune]*Node{'s': eatsNode},
+	}
+	eaNode := &Node{
+		Label:     "ea",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{'r': earNode, 't': eatNode},
 	}
 	eNode := &Node{
 		Label:     "e",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'f': fNode},
+		NextNodes: map[rune]*Node{'a': eaNode},
+	}
+	beNode := &Node{
+		Label:     "be",
+		Terminal:  true,
+		NextNodes: map[rune]*Node{},
+	}
+	bNode := &Node{
+		Label:     "b",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{'e': beNode},
+	}
+	aNode := &Node{
+		Label:     "a",
+		Terminal:  true,
+		NextNodes: map[rune]*Node{},
 	}
 	trie := &Trie{
 		Root: &Node{
-			Label:     "",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'a': aNode, 'e': eNode},
+			Label:    "",
+			Terminal: false,
+			NextNodes: map[rune]*Node{
+				'a': aNode,
+				'b': bNode,
+				'c': cNode,
+				'd': dNode,
+				'e': eNode,
+			},
 		},
 	}
-
 	return trie
-
 }

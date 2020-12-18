@@ -127,6 +127,15 @@ func TestGetPrefixAbove(t *testing.T) {
 		prefix, _ := GetPrefixAbove(tiles[2][1], tiles)
 		assert.Equal(t, "ab", prefix)
 	})
+	t.Run("test multipliers ignored", func(t *testing.T) {
+		tiles := newBoard()
+		tiles[0][1].Letter = 'a'
+		tiles[1][1].Letter = 'b'
+		tiles[0][1].LetterMultiplier = 3
+		tiles[1][1].WordMultiplier = 3
+		_, score := GetPrefixAbove(tiles[2][1], tiles)
+		assert.Equal(t, 1+4, score)
+	})
 }
 
 // TODO: here, and in prefix, check multipliers / score calculations.
@@ -172,5 +181,14 @@ func TestGetSuffixBelow(t *testing.T) {
 		tiles[2][1].Letter = 'b'
 		suffix, _ := GetSuffixBelow(tiles[0][1], tiles)
 		assert.Equal(t, "ab", suffix)
+	})
+	t.Run("test multipliers ignored", func(t *testing.T) {
+		tiles := newBoard()
+		tiles[1][1].Letter = 'a'
+		tiles[2][1].Letter = 'b'
+		tiles[1][1].LetterMultiplier = 3
+		tiles[2][1].WordMultiplier = 3
+		_, score := GetPrefixAbove(tiles[0][1], tiles)
+		assert.Equal(t, 1+4, score)
 	})
 }

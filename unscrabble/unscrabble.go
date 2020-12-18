@@ -189,7 +189,7 @@ func GetPrefixAbove(tile *Tile, tiles [][]*Tile) (string, int) {
 	for ; (y >= 0) && tiles[y][x].Letter != 0; y-- {
 		placedTile := tiles[y][x]
 		sb.WriteRune(placedTile.Letter)
-		score += placedTile.LetterMultiplier * letterScores[placedTile.Letter]
+		score += letterScores[placedTile.Letter]
 	}
 
 	return reverse(sb.String()), score
@@ -208,7 +208,7 @@ func GetSuffixBelow(tile *Tile, tiles [][]*Tile) (string, int) {
 	for ; (y < len(tiles)) && tiles[y][x].Letter != 0; y++ {
 		placedTile := tiles[y][x]
 		sb.WriteRune(placedTile.Letter)
-		score += placedTile.LetterMultiplier * letterScores[placedTile.Letter]
+		score += letterScores[placedTile.Letter]
 	}
 
 	return sb.String(), score

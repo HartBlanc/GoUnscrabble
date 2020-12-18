@@ -1,8 +1,10 @@
 package unscrabble
 
 import (
-	assert "github.com/stretchr/testify/assert"
 	"testing"
+
+	gomock "github.com/golang/mock/gomock"
+	assert "github.com/stretchr/testify/assert"
 )
 
 var testTiles = [][]*Tile{}
@@ -85,14 +87,6 @@ func TestGetAnchors(t *testing.T) {
 }
 
 func TestGetPrefixAbove(t *testing.T) {
-	newBoard := func() [][]*Tile {
-		return [][]*Tile{
-			{NewTile(0, 0, 1, 1), NewTile(1, 0, 1, 1), NewTile(2, 0, 1, 1), NewTile(3, 0, 1, 1)},
-			{NewTile(0, 1, 1, 1), NewTile(1, 1, 1, 1), NewTile(2, 1, 1, 1), NewTile(3, 1, 1, 1)},
-			{NewTile(0, 2, 1, 1), NewTile(1, 2, 1, 1), NewTile(2, 2, 1, 1), NewTile(3, 2, 1, 1)},
-			{NewTile(0, 3, 1, 1), NewTile(1, 3, 1, 1), NewTile(2, 3, 1, 1), NewTile(3, 3, 1, 1)},
-		}
-	}
 	t.Run("test empty string and zero score if no prefix above", func(t *testing.T) {
 		tiles := newBoard()
 		prefix, score := GetPrefixAbove(tiles[1][1], tiles)
@@ -138,16 +132,7 @@ func TestGetPrefixAbove(t *testing.T) {
 	})
 }
 
-// TODO: here, and in prefix, check multipliers / score calculations.
 func TestGetSuffixBelow(t *testing.T) {
-	newBoard := func() [][]*Tile {
-		return [][]*Tile{
-			{NewTile(0, 0, 1, 1), NewTile(1, 0, 1, 1), NewTile(2, 0, 1, 1), NewTile(3, 0, 1, 1)},
-			{NewTile(0, 1, 1, 1), NewTile(1, 1, 1, 1), NewTile(2, 1, 1, 1), NewTile(3, 1, 1, 1)},
-			{NewTile(0, 2, 1, 1), NewTile(1, 2, 1, 1), NewTile(2, 2, 1, 1), NewTile(3, 2, 1, 1)},
-			{NewTile(0, 3, 1, 1), NewTile(1, 3, 1, 1), NewTile(2, 3, 1, 1), NewTile(3, 3, 1, 1)},
-		}
-	}
 	t.Run("test empty string and zero score if no suffix below", func(t *testing.T) {
 		tiles := newBoard()
 		suffix, score := GetSuffixBelow(tiles[1][1], tiles)
@@ -188,7 +173,88 @@ func TestGetSuffixBelow(t *testing.T) {
 		tiles[2][1].Letter = 'b'
 		tiles[1][1].LetterMultiplier = 3
 		tiles[2][1].WordMultiplier = 3
-		_, score := GetPrefixAbove(tiles[0][1], tiles)
+		_, score := GetPrefixAbove(tiles[3][1], tiles)
 		assert.Equal(t, 1+4, score)
 	})
+}
+
+func TestCrossCheck(t *testing.T) {
+	t.Run("test no prefix or suffix returns nil set and zero score, without consulting lexicon", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		tiles := newBoard()
+		tile := tiles[0][0]
+		mockLexicon := NewMockLexicon(ctrl)
+		mockLexicon.EXPECT().ValidLettersBetweenPrefixAndSuffix(
+			gomock.Any(),
+			gomock.Any(),
+		).Times(0)
+		crossCheckSet, score := CrossCheck(tile, tiles, mockLexicon)
+		assert.Nil(t, crossCheckSet)
+		assert.Equal(t, 0, score)
+	})
+	t.Run("test prefix", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		tiles := newBoard()
+		tiles[0][0].Letter = 'c'
+		tiles[1][0].Letter = 'a'
+		tile := tiles[2][0]
+		expectedCrossCheckSet := map[rune]struct{}{'t': {}, 'r': {}}
+		mockLexicon := NewMockLexicon(ctrl)
+		mockLexicon.EXPECT().ValidLettersBetweenPrefixAndSuffix(
+			"ca",
+			"",
+		).Times(1).Return(expectedCrossCheckSet)
+		crossCheckSet, score := CrossCheck(tile, tiles, mockLexicon)
+		assert.Equal(t, expectedCrossCheckSet, crossCheckSet)
+		assert.Equal(t, 5, score)
+	})
+	t.Run("test suffix", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		tiles := newBoard()
+		tiles[1][0].Letter = 'a'
+		tiles[2][0].Letter = 't'
+		tile := tiles[0][0]
+		expectedCrossCheckSet := map[rune]struct{}{'c': {}, 'b': {}}
+		mockLexicon := NewMockLexicon(ctrl)
+		mockLexicon.EXPECT().ValidLettersBetweenPrefixAndSuffix(
+			"",
+			"at",
+		).Times(1).Return(expectedCrossCheckSet)
+		crossCheckSet, score := CrossCheck(tile, tiles, mockLexicon)
+		assert.Equal(t, expectedCrossCheckSet, crossCheckSet)
+		assert.Equal(t, 2, score)
+	})
+	t.Run("test prefix and suffix", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		tiles := newBoard()
+		tiles[0][0].Letter = 'c'
+		tiles[2][0].Letter = 't'
+		tile := tiles[1][0]
+		expectedCrossCheckSet := map[rune]struct{}{'a': {}}
+		mockLexicon := NewMockLexicon(ctrl)
+		mockLexicon.EXPECT().ValidLettersBetweenPrefixAndSuffix(
+			"c",
+			"t",
+		).Times(1).Return(expectedCrossCheckSet)
+		crossCheckSet, score := CrossCheck(tile, tiles, mockLexicon)
+		assert.Equal(t, expectedCrossCheckSet, crossCheckSet)
+		assert.Equal(t, 5, score)
+	})
+}
+
+func newBoard() [][]*Tile {
+	return [][]*Tile{
+		{NewTile(0, 0, 1, 1), NewTile(1, 0, 1, 1), NewTile(2, 0, 1, 1), NewTile(3, 0, 1, 1)},
+		{NewTile(0, 1, 1, 1), NewTile(1, 1, 1, 1), NewTile(2, 1, 1, 1), NewTile(3, 1, 1, 1)},
+		{NewTile(0, 2, 1, 1), NewTile(1, 2, 1, 1), NewTile(2, 2, 1, 1), NewTile(3, 2, 1, 1)},
+		{NewTile(0, 3, 1, 1), NewTile(1, 3, 1, 1), NewTile(2, 3, 1, 1), NewTile(3, 3, 1, 1)},
+	}
 }

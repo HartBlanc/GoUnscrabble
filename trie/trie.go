@@ -90,11 +90,11 @@ func (trie *Trie) Delete(word string) bool {
 	return true
 }
 
-// ValidLettersBetweenPrefixAndSuffix returns all letters '?' for which there is a word in the
-// trie that looks like: '{prefix}?{suffix}'.
+// ValidLettersBetweenPrefixAndSuffix returns the set of all letters '?'
+// for which there is a word in the trie that looks like: '{prefix}?{suffix}'.
 func (trie *Trie) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[rune]struct{} {
 
-	crossSet := make(map[rune]struct{}, 0)
+	validLetters := make(map[rune]struct{}, 0)
 	currNode := trie.Root
 	prefixOkay := true
 
@@ -109,13 +109,13 @@ func (trie *Trie) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[
 		// word. Here we take a precautionary approach to allow for
 		// unanticipated use cases.
 		if !prefixOkay {
-			return crossSet
+			return validLetters
 		}
 	}
 
-	crossNode := currNode
+	middleNode := currNode
 
-	for crossChar, currNode := range crossNode.NextNodes {
+	for middleLetter, currNode := range middleNode.NextNodes {
 		suffixOkay := true
 		for _, suffixChar := range suffix {
 			currNode, suffixOkay = currNode.NextNodes[suffixChar]
@@ -124,10 +124,10 @@ func (trie *Trie) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[
 			}
 		}
 		if suffixOkay && currNode.Terminal {
-			crossSet[crossChar] = struct{}{}
+			validLetters[middleLetter] = struct{}{}
 		}
 	}
-	return crossSet
+	return validLetters
 }
 
 // New returns a pointer to a new empty Trie.

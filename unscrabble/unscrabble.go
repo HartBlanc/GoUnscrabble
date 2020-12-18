@@ -77,7 +77,7 @@ type Position struct {
 
 type Lexicon interface {
 	Contains(string) bool
-	CrossSet(string, string) map[rune]struct{}
+	ValidLettersBetweenPrefixAndSuffix(string, string) map[rune]struct{}
 }
 
 // NewTile returns a new empty tile, with a full cross check set.
@@ -173,7 +173,7 @@ func CrossCheck(tile *Tile, tiles [][]*Tile, lexicon Lexicon) (map[rune]struct{}
 	if prefix == "" && suffix == "" {
 		return nil, 0
 	}
-	return lexicon.CrossSet(prefix, suffix), prefixScore + suffixScore
+	return lexicon.ValidLettersBetweenPrefixAndSuffix(prefix, suffix), prefixScore + suffixScore
 }
 
 // GetPrefixAbove finds the prefix and the score

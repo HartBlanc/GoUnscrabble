@@ -116,6 +116,7 @@ func NewTile(y, x, wordMultiplier, letterMultiplier int) *BoardTile {
 			Row:    y,
 			Column: x,
 		},
+		CrossCheckSet : nil,
 	}
 }
 
@@ -135,6 +136,7 @@ func NewBoard(wordMultipliers, letterMultipliers [][]int) Board {
 			)
 		}
 	}
+	board[boardSize/2][boardSize/2].IsAnchor = true
 	return board
 }
 

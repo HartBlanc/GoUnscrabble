@@ -102,11 +102,13 @@ type Position struct {
 	Column int
 }
 
+type Board [][]*BoardTile
+
 func (position *Position) Transpose() {
 	position.Row, position.Column = position.Column, position.Row
 }
 
-func NewTile(x, y, wordMultiplier, letterMultiplier int) *BoardTile {
+func NewTile(y, x, wordMultiplier, letterMultiplier int) *BoardTile {
 	return &BoardTile{
 		WordMultiplier:   wordMultiplier,
 		LetterMultiplier: letterMultiplier,
@@ -119,31 +121,31 @@ func NewTile(x, y, wordMultiplier, letterMultiplier int) *BoardTile {
 
 // NewBoard returns a new empty board (a 2D slice of Tiles) from 2D slices
 // of word multipliers and letter multipliers.
-func NewBoard(wordMultipliers, letterMultipliers [][]int) [][]*BoardTile {
+func NewBoard(wordMultipliers, letterMultipliers [][]int) Board {
 	boardSize := len(wordMultipliers)
-	tiles := make([][]*BoardTile, boardSize)
-	for i := range tiles {
-		tiles[i] = make([]*BoardTile, boardSize)
-		for j := range tiles[i] {
-			tiles[i][j] = NewTile(
-				i,
-				j,
-				wordMultipliers[i][j],
-				letterMultipliers[i][j],
+	board := make(Board, boardSize)
+	for y := range board {
+		board[y] = make([]*BoardTile, boardSize)
+		for x := range board[y] {
+			board[y][x] = NewTile(
+				y,
+				x,
+				wordMultipliers[y][x],
+				letterMultipliers[y][x],
 			)
 		}
 	}
-	return tiles
+	return board
 }
 
 // TODO: check what we need to do about board modifications
 // Transpose transposes the tiles of the board.
 // This is achieved using an in-place transformation.
 // This works on the assumption that the board is square.
-func Transpose(tiles [][]*BoardTile) {
-	for i := range tiles {
-		for j := i + 1; j < len(tiles); j++ {
-			tiles[i][j], tiles[j][i] = tiles[j][i], tiles[i][j]
+func Transpose(board Board) {
+	for i := range board {
+		for j := i + 1; j < len(board); j++ {
+			board[i][j], board[j][i] = board[j][i], board[i][j]
 		}
 	}
 }
@@ -153,30 +155,30 @@ func Transpose(tiles [][]*BoardTile) {
 // These anchors are the empty squares which are adjacent
 // (horizontally or vertically) to another square.
 // TODO: get these incrementally?
-func GetAnchors(tiles [][]*BoardTile) []*BoardTile {
-	anchors := make([]*BoardTile, 0, len(tiles)*len(tiles))
-	for i, row := range tiles {
-		for j, tile := range row {
+func GetAnchors(board Board) []*BoardTile {
+	anchors := make([]*BoardTile, 0, len(board)*len(board))
+	for y, row := range board {
+		for x, tile := range row {
 			if !(tile.Letter == 0) {
 				continue
 			}
 
-			if i > 0 && tiles[i-1][j].Letter != 0 {
+			if y > 0 && board[y-1][x].Letter != 0 {
 				anchors = append(anchors, tile)
 				continue
 			}
 
-			if i < (len(tiles)-1) && tiles[i+1][j].Letter != 0 {
+			if y < (len(board)-1) && board[y+1][x].Letter != 0 {
 				anchors = append(anchors, tile)
 				continue
 			}
 
-			if j > 0 && tiles[i][j-1].Letter != 0 {
+			if x > 0 && board[y][x-1].Letter != 0 {
 				anchors = append(anchors, tile)
 				continue
 			}
 
-			if j < (len(tiles)-1) && tiles[i][j+1].Letter != 0 {
+			if x < (len(board)-1) && board[y][x+1].Letter != 0 {
 				anchors = append(anchors, tile)
 				continue
 			}
@@ -193,9 +195,9 @@ func GetAnchors(tiles [][]*BoardTile) []*BoardTile {
 // the prefix score and the suffix score. Where the prefix score
 // and the suffix scores are the sums of the scores of the letters
 // of the prefix above the tile and the suffix below the tile.
-func CrossCheck(tile *BoardTile, tiles [][]*BoardTile, trie lexicon.Node) (map[rune]bool, int) {
-	prefix, prefixScore := GetPrefixAbove(tile, tiles)
-	suffix, suffixScore := GetSuffixBelow(tile, tiles)
+func CrossCheck(tile *BoardTile, board Board, trie lexicon.Node) (map[rune]bool, int) {
+	prefix, prefixScore := GetPrefixAbove(tile, board)
+	suffix, suffixScore := GetSuffixBelow(tile, board)
 	if prefix == "" && suffix == "" {
 		return nil, 0
 	}
@@ -205,15 +207,15 @@ func CrossCheck(tile *BoardTile, tiles [][]*BoardTile, trie lexicon.Node) (map[r
 // GetPrefixAbove finds the prefix and the score
 // associated with the consecutive tiles immediately
 // above the provided tile.
-func GetPrefixAbove(tile *BoardTile, tiles [][]*BoardTile) (string, int) {
+func GetPrefixAbove(tile *BoardTile, board Board) (string, int) {
 
 	var sb strings.Builder
 	x := tile.BoardPosition.Column
 	y := tile.BoardPosition.Row - 1
 	score := 0
 
-	for ; (y >= 0) && tiles[y][x].Letter != 0; y-- {
-		placedTile := tiles[y][x]
+	for ; (y >= 0) && board[y][x].Letter != 0; y-- {
+		placedTile := board[y][x]
 		sb.WriteRune(placedTile.Letter)
 		score += letterScores[placedTile.Letter]
 	}
@@ -224,15 +226,15 @@ func GetPrefixAbove(tile *BoardTile, tiles [][]*BoardTile) (string, int) {
 // GetSuffixBelow finds the suffix and the score
 // associated with the consecutive tiles immediately
 // below the provided tile.
-func GetSuffixBelow(tile *BoardTile, tiles [][]*BoardTile) (string, int) {
+func GetSuffixBelow(tile *BoardTile, board Board) (string, int) {
 
 	var sb strings.Builder
 	x := tile.BoardPosition.Column
 	y := tile.BoardPosition.Row + 1
 	score := 0
 
-	for ; (y < len(tiles)) && tiles[y][x].Letter != 0; y++ {
-		placedTile := tiles[y][x]
+	for ; (y < len(board)) && board[y][x].Letter != 0; y++ {
+		placedTile := board[y][x]
 		sb.WriteRune(placedTile.Letter)
 		score += letterScores[placedTile.Letter]
 	}
@@ -240,7 +242,7 @@ func GetSuffixBelow(tile *BoardTile, tiles [][]*BoardTile) (string, int) {
 	return sb.String(), score
 }
 
-func (move *Move) CalculateScore(board [][]*BoardTile) (int, error) {
+func (move *Move) CalculateScore(board Board) (int, error) {
 	y := move.StartPosition.Row
 	x := move.StartPosition.Column
 
@@ -298,7 +300,7 @@ func reverse(s string) string {
 
 // TODO: allow passing generator function as an argument somehow (abstracting the lexicon)
 // TODO: how to handle snchor skipping for GADDAG?
-func GetLegalMoves(board [][]*BoardTile, rack map[rune]int, anchors []*BoardTile, trie *lexicon.Node) []*Move {
+func GetLegalMoves(board Board, rack map[rune]int, anchors []*BoardTile, trie *lexicon.Node) []*Move {
 
 	moves := make([]*Move, 0)
 
@@ -329,7 +331,7 @@ func GetLegalMoves(board [][]*BoardTile, rack map[rune]int, anchors []*BoardTile
 	return moves
 }
 
-func GenerateWordsFromAnchorWithTrie(board [][]*BoardTile, rack map[rune]int, anchor *BoardTile, trie *lexicon.Node, processPrefixWordAndBlanks func(string, string, []bool)) {
+func GenerateWordsFromAnchorWithTrie(board Board, rack map[rune]int, anchor *BoardTile, trie *lexicon.Node, processPrefixWordAndBlanks func(string, string, []bool)) {
 
 	currDirection := left
 	currBoardTile := anchor.GetAdjacentTile(board, 0, currDirection)
@@ -396,7 +398,7 @@ func GenerateWordsFromAnchorWithTrie(board [][]*BoardTile, rack map[rune]int, an
 	trie.GenerateNodesWithPruning(inRack, fromRackShiftTile, toRackShiftTileBack, untilAnchorOrEdge, extendPrefix)
 }
 
-func (tile *BoardTile) GetAdjacentTile(board [][]*BoardTile, vertical, horizontal int) *BoardTile {
+func (tile *BoardTile) GetAdjacentTile(board Board, vertical, horizontal int) *BoardTile {
 	if tile.BoardPosition.Column+horizontal < 0 || tile.BoardPosition.Column+horizontal >= len(board) {
 		return nil
 	}
@@ -405,7 +407,7 @@ func (tile *BoardTile) GetAdjacentTile(board [][]*BoardTile, vertical, horizonta
 
 // PerformMove places tiles on the board from the rack.
 // Update cross sets / anchors
-func PerformMove(move *Move, board [][]*BoardTile, rack map[rune]int, trie lexicon.Node) {
+func PerformMove(move *Move, board Board, rack map[rune]int, trie lexicon.Node) {
 
 	if !move.Horizontal {
 		Transpose(board)
@@ -460,7 +462,7 @@ func PerformMove(move *Move, board [][]*BoardTile, rack map[rune]int, trie lexic
 	}
 }
 
-func UpdateAdjacentCrossCheckSets(tile *BoardTile, board [][]*BoardTile, trie lexicon.Node) {
+func UpdateAdjacentCrossCheckSets(tile *BoardTile, board Board, trie lexicon.Node) {
 	currTile := tile
 	for ; currTile != nil && currTile.Letter != 0; currTile = currTile.GetAdjacentTile(board, above, 0) {
 	}
@@ -478,7 +480,7 @@ func UpdateAdjacentCrossCheckSets(tile *BoardTile, board [][]*BoardTile, trie le
 }
 
 func PlayGame() {
-	// make an empty boaard (with center square as initial anchor)
+	// make an empty board (with center square as initial anchor)
 	// make trie from source lexicon
 	// generate n racks from the letter bag
 	// generate moves for the first player

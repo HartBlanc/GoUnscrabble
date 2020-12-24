@@ -7,7 +7,6 @@ import (
 )
 
 var (
-	Empty        struct{}
 	letterScores = map[rune]int{
 		'a': 1,
 		'b': 4,

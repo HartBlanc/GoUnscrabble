@@ -482,8 +482,6 @@ func UpdateAdjacentCrossCheckSets(tile *BoardTile, board Board, trie lexicon.Nod
 }
 
 func PlayGame() {
-	// make an empty board (with center square as initial anchor)
-	// make trie from source lexicon
 	// generate n racks from the letter bag
 	// generate moves for the first player
 	// pick the move with the highest score

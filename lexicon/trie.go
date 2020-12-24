@@ -2,7 +2,31 @@ package lexicon
 
 import (
 	"strings"
+	"bufio"
+	"os"
 )
+
+// CreateTrieFromFile builds a trie from a
+// file which has a single word on each line.
+func CreateTrieFromFile(filePath string) *Node {
+	file, err := os.Open(filePath)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	trie := New()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		trie.Insert(scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		panic(err)
+	}
+	return trie
+}
 
 // Insert inserts the word into the trie.
 // It returns a bool representing whether the word was newly inserted.

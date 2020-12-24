@@ -1,9 +1,9 @@
 package lexicon
 
 import (
-	"strings"
 	"bufio"
 	"os"
+	"strings"
 )
 
 // CreateTrieFromFile builds a trie from a
@@ -47,7 +47,7 @@ func (node *Node) Insert(word string) bool {
 		}
 		currNode = currNode.NextNodes[char]
 	}
-	
+
 	currNode.Terminal = true
 	return true
 }
@@ -139,13 +139,13 @@ func (node *Node) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[
 	return validLetters
 }
 
-func (node *Node) GenerateNodesWithPruning(validEdge func(rune) bool, preExpandHook func(rune, *Node), postExpandHook func(rune, *Node), terminate func(*Node) bool, processNode func(*Node)){
+func (node *Node) GenerateNodesWithPruning(validEdge func(rune) bool, preExpandHook func(rune, *Node), postExpandHook func(rune, *Node), terminate func(*Node) bool, processNode func(*Node)) {
 	if terminate(node) {
 		processNode(node)
 		return
 	}
 	for edge, nextNode := range node.NextNodes {
-		if !validEdge(edge){
+		if !validEdge(edge) {
 			continue
 		}
 		preExpandHook(edge, nextNode)

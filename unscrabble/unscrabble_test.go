@@ -7,41 +7,41 @@ import (
 	assert "github.com/stretchr/testify/assert"
 )
 
-var testTiles = [][]*Tile{}
+var testTiles = [][]*BoardTile{}
 
 func TestTranspose(t *testing.T) {
 
 	t.Run("transpose empty", func(t *testing.T) {
-		tiles := [][]*Tile{{}}
+		tiles := [][]*BoardTile{{}}
 		Transpose(tiles)
-		assert.Equal(t, [][]*Tile{{}}, tiles)
+		assert.Equal(t, [][]*BoardTile{{}}, tiles)
 	})
 	t.Run("transpose single", func(t *testing.T) {
-		tiles := [][]*Tile{
-			{&Tile{}},
+		tiles := [][]*BoardTile{
+			{&BoardTile{}},
 		}
-		expectedTiles := [][]*Tile{
-			{&Tile{}},
+		expectedTiles := [][]*BoardTile{
+			{&BoardTile{}},
 		}
 		Transpose(tiles)
 		assert.Equal(t, expectedTiles, tiles)
 	})
 	t.Run("transpose square", func(t *testing.T) {
-		tiles := [][]*Tile{
-			{&Tile{Letter: 'a'}, &Tile{Letter: 'b'}},
-			{&Tile{Letter: 'c'}, &Tile{Letter: 'd'}},
+		tiles := [][]*BoardTile{
+			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'b'}},
+			{&BoardTile{Letter: 'c'}, &BoardTile{Letter: 'd'}},
 		}
-		expectedTiles := [][]*Tile{
-			{&Tile{Letter: 'a'}, &Tile{Letter: 'c'}},
-			{&Tile{Letter: 'b'}, &Tile{Letter: 'd'}},
+		expectedTiles := [][]*BoardTile{
+			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'c'}},
+			{&BoardTile{Letter: 'b'}, &BoardTile{Letter: 'd'}},
 		}
 		Transpose(tiles)
 		assert.Equal(t, expectedTiles, tiles)
 		Transpose(tiles)
 
-		expectedTiles = [][]*Tile{
-			{&Tile{Letter: 'a'}, &Tile{Letter: 'b'}},
-			{&Tile{Letter: 'c'}, &Tile{Letter: 'd'}},
+		expectedTiles = [][]*BoardTile{
+			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'b'}},
+			{&BoardTile{Letter: 'c'}, &BoardTile{Letter: 'd'}},
 		}
 		assert.Equal(t, expectedTiles, tiles)
 	})
@@ -50,38 +50,38 @@ func TestTranspose(t *testing.T) {
 func TestGetAnchors(t *testing.T) {
 
 	t.Run("no tiles", func(t *testing.T) {
-		tiles := [][]*Tile{{}}
-		expectedAnchors := []*Tile{}
+		tiles := [][]*BoardTile{{}}
+		expectedAnchors := []*BoardTile{}
 		assert.Equal(t, expectedAnchors, GetAnchors(tiles))
 	})
 	t.Run("all tiles empty", func(t *testing.T) {
-		tiles := [][]*Tile{
-			{&Tile{}, &Tile{}},
-			{&Tile{}, &Tile{}},
+		tiles := [][]*BoardTile{
+			{&BoardTile{}, &BoardTile{}},
+			{&BoardTile{}, &BoardTile{}},
 		}
-		expectedAnchors := []*Tile{}
+		expectedAnchors := []*BoardTile{}
 		assert.Equal(t, expectedAnchors, GetAnchors(tiles))
 	})
 	t.Run("no empty tiles", func(t *testing.T) {
-		tiles := [][]*Tile{
-			{&Tile{Letter: 'a'}, &Tile{Letter: 'a'}},
-			{&Tile{Letter: 'a'}, &Tile{Letter: 'a'}},
+		tiles := [][]*BoardTile{
+			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'a'}},
+			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'a'}},
 		}
-		expectedAnchors := []*Tile{}
+		expectedAnchors := []*BoardTile{}
 		assert.Equal(t, expectedAnchors, GetAnchors(tiles))
 	})
 	t.Run("adjacent tiles are anchors", func(t *testing.T) {
 
-		above := &Tile{BoardPosition: &Position{Row: 0, Column: 1}}
-		left := &Tile{BoardPosition: &Position{Row: 1, Column: 0}}
-		right := &Tile{BoardPosition: &Position{Row: 1, Column: 2}}
-		below := &Tile{BoardPosition: &Position{Row: 2, Column: 1}}
-		tiles := [][]*Tile{
-			{&Tile{}, above, &Tile{}},
-			{left, &Tile{Letter: 'a'}, right},
-			{&Tile{}, below, &Tile{}},
+		above := &BoardTile{BoardPosition: &Position{Row: 0, Column: 1}}
+		left := &BoardTile{BoardPosition: &Position{Row: 1, Column: 0}}
+		right := &BoardTile{BoardPosition: &Position{Row: 1, Column: 2}}
+		below := &BoardTile{BoardPosition: &Position{Row: 2, Column: 1}}
+		tiles := [][]*BoardTile{
+			{&BoardTile{}, above, &BoardTile{}},
+			{left, &BoardTile{Letter: 'a'}, right},
+			{&BoardTile{}, below, &BoardTile{}},
 		}
-		expectedAnchors := []*Tile{above, left, right, below}
+		expectedAnchors := []*BoardTile{above, left, right, below}
 		assert.ElementsMatch(t, expectedAnchors, GetAnchors(tiles))
 	})
 }
@@ -250,8 +250,8 @@ func TestCrossCheck(t *testing.T) {
 	})
 }
 
-func newBoard() [][]*Tile {
-	return [][]*Tile{
+func newBoard() [][]*BoardTile {
+	return [][]*BoardTile{
 		{NewTile(0, 0, 1, 1), NewTile(1, 0, 1, 1), NewTile(2, 0, 1, 1), NewTile(3, 0, 1, 1)},
 		{NewTile(0, 1, 1, 1), NewTile(1, 1, 1, 1), NewTile(2, 1, 1, 1), NewTile(3, 1, 1, 1)},
 		{NewTile(0, 2, 1, 1), NewTile(1, 2, 1, 1), NewTile(2, 2, 1, 1), NewTile(3, 2, 1, 1)},

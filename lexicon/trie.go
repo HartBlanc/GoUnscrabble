@@ -1,72 +1,57 @@
-package trie
+package lexicon
 
 import (
 	"strings"
 )
 
-// Node is a node in the Trie data structure.
-type Node struct {
-	Label     string
-	Terminal  bool
-	NextNodes map[rune]*Node
-}
-
-// Trie is a data structure which contains strings.
-// Checking whether a word is present in the trie is an O(k) operation
-// where k is the length of the string.
-type Trie struct {
-	Root *Node
-}
-
 // Insert inserts the word into the trie.
 // It returns a bool representing whether the word was newly inserted.
-func (trie *Trie) Insert(word string) bool {
-	if trie.Contains(word) {
+func (node *Node) Insert(word string) bool {
+	if node.Contains(word) {
 		return false
 	}
 	var stringBuilder strings.Builder
-	node := trie.Root
+	currNode := node
 	for _, char := range word {
 		stringBuilder.WriteRune(char)
-		if nextNode, ok := node.NextNodes[char]; ok {
-			node = nextNode
-		} else {
-			node.NextNodes[char] = &Node{
+		if _, ok := currNode.NextNodes[char]; !ok {
+			currNode.NextNodes[char] = &Node{
 				Label:     stringBuilder.String(),
 				Terminal:  false,
 				NextNodes: map[rune]*Node{},
 			}
-			node = node.NextNodes[char]
 		}
+		currNode = currNode.NextNodes[char]
 	}
-	node.Terminal = true
+	
+	currNode.Terminal = true
 	return true
 }
 
 // Contains identifies whether the word is in the trie.
-// It returns a bool representing whether the word is in the tree.
-func (trie *Trie) Contains(word string) bool {
-	node := trie.Root
+// It returns a bool representing whether the word is in the trie.
+func (node *Node) Contains(word string) bool {
+	currNode := node
 	for _, char := range word {
-		nextNode, ok := node.NextNodes[char]
+		nextNode, ok := currNode.NextNodes[char]
 		if !ok {
 			return false
 		}
-		node = nextNode
+		currNode = nextNode
 	}
-	return node.Terminal
+	return currNode.Terminal
 }
 
-// Delete removes the word from the trie, if it is present in the tree.
-// It returns whether the word was present in the tree.
-func (trie *Trie) Delete(word string) bool {
-	if !trie.Contains(word) {
+// Delete removes the word from the node, if it is present in the trie.
+// It returns whether the word was present in the trie.
+func (node *Node) Delete(word string) bool {
+	if !node.Contains(word) {
 		return false
 	}
 
 	var prefixWordTerminalNode *Node
 	var suffixInitialChar rune
-	currNode := trie.Root
+	currNode := node
 
 	for i, char := range word {
 		if currNode.Terminal && i != len(word) {
@@ -78,7 +63,7 @@ func (trie *Trie) Delete(word string) bool {
 	if prefixWordTerminalNode == nil {
 		if len(currNode.NextNodes) == 0 {
 			delete(
-				trie.Root.NextNodes,
+				node.NextNodes,
 				[]rune(word)[0],
 			)
 		} else {
@@ -91,11 +76,11 @@ func (trie *Trie) Delete(word string) bool {
 }
 
 // ValidLettersBetweenPrefixAndSuffix returns the set of all letters '?'
-// for which there is a word in the trie that looks like: '{prefix}?{suffix}'.
-func (trie *Trie) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[rune]struct{} {
+// for which there is a word in the node that looks like: '{prefix}?{suffix}'.
+func (node *Node) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[rune]bool {
 
-	validLetters := make(map[rune]struct{}, 0)
-	currNode := trie.Root
+	validLetters := make(map[rune]bool, 0)
+	currNode := node
 	prefixOkay := true
 
 	for _, prefixChar := range prefix {
@@ -124,19 +109,38 @@ func (trie *Trie) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[
 			}
 		}
 		if suffixOkay && currNode.Terminal {
-			validLetters[middleLetter] = struct{}{}
+			validLetters[middleLetter] = true
 		}
 	}
 	return validLetters
 }
 
-// New returns a pointer to a new empty Trie.
-func New() *Trie {
-	return &Trie{
-		Root: &Node{
-			Label:     "",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{},
-		},
+func (node *Node) GenerateNodesWithPruning(validEdge func(rune) bool, preExpandHook func(rune, *Node), postExpandHook func(rune, *Node), terminate func(*Node) bool, processNode func(*Node)){
+	if terminate(node) {
+		processNode(node)
+		return
+	}
+	for edge, nextNode := range node.NextNodes {
+		if !validEdge(edge){
+			continue
+		}
+		preExpandHook(edge, nextNode)
+		nextNode.GenerateNodesWithPruning(
+			validEdge,
+			preExpandHook,
+			postExpandHook,
+			terminate,
+			processNode,
+		)
+		postExpandHook(edge, nextNode)
+	}
+}
+
+// New returns a pointer to a new empty Node.
+func New() *Node {
+	return &Node{
+		Label:     "",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{},
 	}
 }

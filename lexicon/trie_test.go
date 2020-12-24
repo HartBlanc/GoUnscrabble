@@ -1,4 +1,4 @@
-package trie
+package lexicon
 
 import (
 	assert "github.com/stretchr/testify/assert"
@@ -7,12 +7,10 @@ import (
 
 func TestNew(t *testing.T) {
 
-	expectedTrie := &Trie{
-		Root: &Node{
-			Label:     "",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{},
-		},
+	expectedTrie := &Node{
+		Label:     "",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{},
 	}
 
 	assert.Equal(t, expectedTrie, New())
@@ -20,12 +18,10 @@ func TestNew(t *testing.T) {
 
 func TestInsertEmpty(t *testing.T) {
 
-	trie := &Trie{
-		Root: &Node{
-			Label:     "",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{},
-		},
+	trie := &Node{
+		Label:     "",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{},
 	}
 	assert.True(t, trie.Insert("abc"))
 
@@ -45,12 +41,10 @@ func TestInsertEmpty(t *testing.T) {
 		NextNodes: map[rune]*Node{'b': bNode},
 	}
 
-	expectedTrie := &Trie{
-		Root: &Node{
-			Label:     "",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'a': aNode},
-		},
+	expectedTrie := &Node{
+		Label:     "",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{'a': aNode},
 	}
 
 	assert.Equal(t, expectedTrie, trie)
@@ -58,12 +52,10 @@ func TestInsertEmpty(t *testing.T) {
 
 func TestInsertDisjoint(t *testing.T) {
 
-	trie := &Trie{
-		Root: &Node{
-			Label:     "",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{},
-		},
+	trie := &Node{
+		Label:     "",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{},
 	}
 	assert.True(t, trie.Insert("abc"))
 	assert.True(t, trie.Insert("def"))
@@ -100,12 +92,10 @@ func TestInsertDisjoint(t *testing.T) {
 		NextNodes: map[rune]*Node{'e': eNode},
 	}
 
-	expectedTrie := &Trie{
-		Root: &Node{
-			Label:     "",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'d': dNode, 'a': aNode},
-		},
+	expectedTrie := &Node{
+		Label:     "",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{'d': dNode, 'a': aNode},
 	}
 
 	assert.Equal(t, expectedTrie, trie)
@@ -113,12 +103,10 @@ func TestInsertDisjoint(t *testing.T) {
 
 func TestInsertSharedPrefix(t *testing.T) {
 
-	trie := &Trie{
-		Root: &Node{
-			Label:     "",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{},
-		},
+	trie := &Node{
+		Label:     "",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{},
 	}
 	assert.True(t, trie.Insert("abce"))
 	assert.True(t, trie.Insert("abcd"))
@@ -151,12 +139,10 @@ func TestInsertSharedPrefix(t *testing.T) {
 		NextNodes: map[rune]*Node{'b': bNode},
 	}
 
-	expectedTrie := &Trie{
-		Root: &Node{
-			Label:     "",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'a': aNode},
-		},
+	expectedTrie := &Node{
+		Label:     "",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{'a': aNode},
 	}
 
 	assert.Equal(t, expectedTrie, trie)
@@ -164,12 +150,10 @@ func TestInsertSharedPrefix(t *testing.T) {
 
 func TestInsertSameWordTwice(t *testing.T) {
 
-	trie := &Trie{
-		Root: &Node{
-			Label:     "",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{},
-		},
+	trie := &Node{
+		Label:     "",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{},
 	}
 	assert.True(t, trie.Insert("a"))
 
@@ -178,12 +162,10 @@ func TestInsertSameWordTwice(t *testing.T) {
 		Terminal:  true,
 		NextNodes: map[rune]*Node{},
 	}
-	expectedTrie := &Trie{
-		Root: &Node{
-			Label:     "",
-			Terminal:  false,
-			NextNodes: map[rune]*Node{'a': aNode},
-		},
+	expectedTrie := &Node{
+		Label:     "",
+		Terminal:  false,
+		NextNodes: map[rune]*Node{'a': aNode},
 	}
 
 	assert.Equal(t, expectedTrie, trie)
@@ -254,7 +236,7 @@ func TestDelete(t *testing.T) {
 		trie := createTrie()
 		assert.True(t, trie.Delete("cars"))
 		expectedTrie := createTrie()
-		delete(expectedTrie.Root.NextNodes['c'].NextNodes['a'].NextNodes['r'].NextNodes, 's')
+		delete(expectedTrie.NextNodes['c'].NextNodes['a'].NextNodes['r'].NextNodes, 's')
 		assert.Equal(
 			t,
 			expectedTrie,
@@ -267,7 +249,7 @@ func TestDelete(t *testing.T) {
 		assert.True(t, trie.Delete("car"))
 
 		expectedTrie := createTrie()
-		expectedTrie.Root.NextNodes['c'].NextNodes['a'].NextNodes['r'].Terminal = false
+		expectedTrie.NextNodes['c'].NextNodes['a'].NextNodes['r'].Terminal = false
 		assert.Equal(
 			t,
 			expectedTrie,
@@ -280,7 +262,7 @@ func TestDelete(t *testing.T) {
 		trie.Delete("be")
 
 		expectedTrie := createTrie()
-		delete(expectedTrie.Root.NextNodes, 'b')
+		delete(expectedTrie.NextNodes, 'b')
 
 		assert.Equal(
 			t,
@@ -297,8 +279,8 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "o")
 		assert.Equal(
 			t,
-			map[rune]struct{}{
-				'd': {},
+			map[rune]bool{
+				'd': true,
 			},
 			crossSet,
 		)
@@ -307,8 +289,8 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("do", "")
 		assert.Equal(
 			t,
-			map[rune]struct{}{
-				'g': {},
+			map[rune]bool{
+				'g': true,
 			},
 			crossSet,
 		)
@@ -317,7 +299,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "")
 		assert.Equal(
 			t,
-			map[rune]struct{}{'a': {}},
+			map[rune]bool{'a': true},
 			crossSet,
 		)
 	})
@@ -325,9 +307,9 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("ca", "s")
 		assert.Equal(
 			t,
-			map[rune]struct{}{
-				'r': {},
-				't': {},
+			map[rune]bool{
+				'r': true,
+				't': true,
 			},
 			crossSet,
 		)
@@ -336,7 +318,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "z")
 		assert.Equal(
 			t,
-			map[rune]struct{}{},
+			map[rune]bool{},
 			crossSet,
 		)
 	})
@@ -344,7 +326,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("z", "")
 		assert.Equal(
 			t,
-			map[rune]struct{}{},
+			map[rune]bool{},
 			crossSet,
 		)
 	})
@@ -352,7 +334,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("a", "")
 		assert.Equal(
 			t,
-			map[rune]struct{}{},
+			map[rune]bool{},
 			crossSet,
 		)
 	})
@@ -360,13 +342,13 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("d", "n")
 		assert.Equal(
 			t,
-			map[rune]struct{}{},
+			map[rune]bool{},
 			crossSet,
 		)
 	})
 }
 
-func createTrie() *Trie {
+func createTrie() *Node {
 	carsNode := &Node{
 		Label:     "cars",
 		Terminal:  true,
@@ -472,17 +454,15 @@ func createTrie() *Trie {
 		Terminal:  true,
 		NextNodes: map[rune]*Node{},
 	}
-	trie := &Trie{
-		Root: &Node{
-			Label:    "",
-			Terminal: false,
-			NextNodes: map[rune]*Node{
-				'a': aNode,
-				'b': bNode,
-				'c': cNode,
-				'd': dNode,
-				'e': eNode,
-			},
+	trie := &Node{
+		Label:    "",
+		Terminal: false,
+		NextNodes: map[rune]*Node{
+			'a': aNode,
+			'b': bNode,
+			'c': cNode,
+			'd': dNode,
+			'e': eNode,
 		},
 	}
 	return trie

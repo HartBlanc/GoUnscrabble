@@ -3,6 +3,7 @@ package unscrabble
 import (
 	"testing"
 
+	"example.com/unscrabble/set"
 	gomock "github.com/golang/mock/gomock"
 	assert "github.com/stretchr/testify/assert"
 )
@@ -202,7 +203,7 @@ func TestCrossCheck(t *testing.T) {
 		tiles[0][0].Letter = 'c'
 		tiles[1][0].Letter = 'a'
 		tile := tiles[2][0]
-		expectedCrossCheckSet := map[rune]struct{}{'t': {}, 'r': {}}
+		expectedCrossCheckSet := set.RuneMap{'t': true, 'r': true}
 		mockLexicon := NewMockLexicon(ctrl)
 		mockLexicon.EXPECT().ValidLettersBetweenPrefixAndSuffix(
 			"ca",
@@ -220,7 +221,7 @@ func TestCrossCheck(t *testing.T) {
 		tiles[1][0].Letter = 'a'
 		tiles[2][0].Letter = 't'
 		tile := tiles[0][0]
-		expectedCrossCheckSet := map[rune]struct{}{'c': {}, 'b': {}}
+		expectedCrossCheckSet := set.RuneMap{'c': true, 'b': true}
 		mockLexicon := NewMockLexicon(ctrl)
 		mockLexicon.EXPECT().ValidLettersBetweenPrefixAndSuffix(
 			"",
@@ -238,7 +239,7 @@ func TestCrossCheck(t *testing.T) {
 		tiles[0][0].Letter = 'c'
 		tiles[2][0].Letter = 't'
 		tile := tiles[1][0]
-		expectedCrossCheckSet := map[rune]struct{}{'a': {}}
+		expectedCrossCheckSet := set.RuneMap{'a': true}
 		mockLexicon := NewMockLexicon(ctrl)
 		mockLexicon.EXPECT().ValidLettersBetweenPrefixAndSuffix(
 			"c",
@@ -250,11 +251,11 @@ func TestCrossCheck(t *testing.T) {
 	})
 }
 
-func newBoard() [][]*BoardTile {
-	return [][]*BoardTile{
-		{NewTile(0, 0, 1, 1), NewTile(1, 0, 1, 1), NewTile(2, 0, 1, 1), NewTile(3, 0, 1, 1)},
-		{NewTile(0, 1, 1, 1), NewTile(1, 1, 1, 1), NewTile(2, 1, 1, 1), NewTile(3, 1, 1, 1)},
-		{NewTile(0, 2, 1, 1), NewTile(1, 2, 1, 1), NewTile(2, 2, 1, 1), NewTile(3, 2, 1, 1)},
-		{NewTile(0, 3, 1, 1), NewTile(1, 3, 1, 1), NewTile(2, 3, 1, 1), NewTile(3, 3, 1, 1)},
+func newBoard() Board {
+	return Board{
+		{NewTile(0, 0, 1, 1), NewTile(0, 1, 1, 1), NewTile(0, 2, 1, 1), NewTile(0, 3, 1, 1)},
+		{NewTile(1, 0, 1, 1), NewTile(1, 1, 1, 1), NewTile(1, 2, 1, 1), NewTile(1, 3, 1, 1)},
+		{NewTile(2, 0, 1, 1), NewTile(2, 1, 1, 1), NewTile(2, 2, 1, 1), NewTile(2, 3, 1, 1)},
+		{NewTile(3, 0, 1, 1), NewTile(3, 1, 1, 1), NewTile(3, 2, 1, 1), NewTile(3, 3, 1, 1)},
 	}
 }

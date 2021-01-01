@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"os"
 	"strings"
+
+	"example.com/unscrabble/set"
 )
 
 // CreateTrieFromFile builds a trie from a
@@ -101,9 +103,9 @@ func (node *Node) Delete(word string) bool {
 
 // ValidLettersBetweenPrefixAndSuffix returns the set of all letters '?'
 // for which there is a word in the node that looks like: '{prefix}?{suffix}'.
-func (node *Node) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[rune]bool {
+func (node *Node) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) set.RuneMap {
 
-	validLetters := make(map[rune]bool, 0)
+	validLetters := make(set.RuneMap, 0)
 	currNode := node
 	prefixOkay := true
 
@@ -133,7 +135,7 @@ func (node *Node) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[
 			}
 		}
 		if suffixOkay && currNode.Terminal {
-			validLetters[middleLetter] = true
+			validLetters.AddRune(middleLetter)
 		}
 	}
 	return validLetters

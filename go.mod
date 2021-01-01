@@ -9,4 +9,5 @@ require (
 	github.com/golang/mock v1.4.4
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/text v0.3.0
+	golang.org/x/tools v0.0.0-20190425150028-36563e24a262
 )

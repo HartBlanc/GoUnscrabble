@@ -2,7 +2,9 @@ package unscrabble
 
 import (
 	"errors"
-	"example.com/unscrabble/lexicon"
+	"example.com/unscrabble/set"
+	"fmt"
+	"math/rand"
 	"strings"
 )
 
@@ -34,6 +36,35 @@ var (
 		'x': 8,
 		'y': 3,
 		'z': 10,
+	}
+	letterCounts = map[rune]int{
+		'*': 2,
+		'a': 5,
+		'b': 1,
+		'c': 1,
+		'd': 2,
+		'e': 7,
+		'f': 1,
+		'g': 1,
+		'h': 1,
+		'i': 4,
+		'j': 1,
+		'k': 1,
+		'l': 2,
+		'm': 1,
+		'n': 2,
+		'o': 4,
+		'p': 1,
+		'q': 1,
+		'r': 2,
+		's': 4,
+		't': 2,
+		'u': 1,
+		'v': 1,
+		'w': 1,
+		'x': 1,
+		'y': 1,
+		'z': 1,
 	}
 	wwfLetterMultipliers = [][]int{
 		{3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3},
@@ -72,13 +103,20 @@ const (
 	below        = 1
 )
 
+type Lexicon interface {
+	ValidLettersBetweenPrefixAndSuffix(string, string) set.RuneSet
+	GenerateNodesWithPruning(func(rune) bool, func(rune, Lexicon), func(rune, Lexicon), func(Lexicon) bool, func(Lexicon))
+	Terminal() bool
+	Label() string
+}
+
 // BoardTile is a data structure which contains information relating
 // to a possibly empty tile on the board.
 type BoardTile struct {
 	Letter           rune // If Letter is 0 the tile is empty
 	WordMultiplier   int
-	LetterMultiplier int           // If the LetterMultiplier is 0 the tile was a blank RackTile
-	CrossCheckSet    map[rune]bool // If the CrossCheckSet is nil, any tile can be placed
+	LetterMultiplier int         // If the LetterMultiplier is 0 the tile was a blank RackTile
+	CrossCheckSet    set.RuneSet // If the CrossCheckSet is nil, any tile can be placed
 	CrossScore       int
 	IsAnchor         bool
 	BoardPosition    *Position
@@ -92,10 +130,80 @@ type Move struct {
 	Score         int
 }
 
+// The rack is an abstract data type which is essentially a multi-set.
+// However, the rack also maintains a traditional set based on the presence
+// of at least one count of the letter being present in the multiset.
+// This allows for efficient set operations to be calculated with other sets of
+// interest (e.g. cross-check sets and trie edge sets).
 type Rack struct {
-	letterTiles []rune
-	blanks      int
+	letterCounts map[rune]int
+	letterSet    set.RuneSet
+	tileCount    int
 }
+
+func (rack *Rack) AddRune(letter rune) {
+	rack.letterCounts[letter]++
+	rack.tileCount++
+	if letter != '*' {
+		rack.letterSet.AddRune(letter)
+	}
+}
+
+func (rack *Rack) RemoveRune(letter rune) {
+	if rack.letterCounts[letter] == 0 {
+		return
+	}
+	rack.letterCounts[letter]--
+	rack.tileCount--
+	if rack.letterCounts[letter] == 0 && letter != '*' {
+		rack.letterSet.RemoveRune(letter)
+	}
+}
+
+// Contains tells us whether the rack contains a letter.
+// If the rack contains a blank tile, it contains all letters.
+func (rack *Rack) Contains(letter rune) bool {
+	if rack.letterCounts['*'] > 0 {
+		return true
+	}
+	return rack.letterSet.Contains(letter)
+}
+
+// Has tile asks if the rack actually contains the tile.
+// Wildcards are treated identically to all other tiles.
+func (rack *Rack) HasTile(tileLetter rune) bool {
+	return rack.letterCounts[tileLetter] > 0
+}
+
+func (rack *Rack) Intersection(otherRuneSet set.RuneSet) set.RuneSet {
+	if rack.letterCounts['*'] > 0 {
+		return otherRuneSet
+	}
+	return rack.letterSet.Intersection(otherRuneSet)
+}
+
+func (rack *Rack) FillRack(letterBag LetterBag) error {
+	for rack.tileCount < rackSize && len(letterBag) > 0 {
+		randomLetter, err := letterBag.PopRandomLetter()
+		if err != nil {
+			return err
+		}
+		rack.AddRune(randomLetter)
+	}
+	return nil
+}
+
+func newRack() *Rack {
+	return &Rack{
+		letterSet: set.New(rackSize),
+	}
+}
+
+// The letter bag is an abstract data structure which allows for
+// efficient random sampling without replacement. This is achieved by using
+// stack-like item popping and shuffling the underlying array
+// any time a new item is added.
+type LetterBag []rune
 
 type Position struct {
 	Row    int
@@ -103,6 +211,40 @@ type Position struct {
 }
 
 type Board [][]*BoardTile
+
+func newLetterBag(letterCounts map[rune]int) LetterBag {
+	numLetters := 0
+	for _, count := range letterCounts {
+		numLetters += count
+	}
+	bag := make(LetterBag, 0, numLetters)
+	bag.AddLetterCounts(letterCounts)
+	return bag
+}
+
+func (bag LetterBag) shuffle() {
+	rand.Shuffle(len(bag), func(i, j int) {
+		bag[i], bag[j] = bag[j], bag[i]
+	})
+}
+
+func (bag LetterBag) PopRandomLetter() (rune, error) {
+	if len(bag) == 0 {
+		return -1, errors.New("bag is empty!")
+	}
+	randomLetter := bag[len(bag)-1]
+	bag = bag[:len(bag)-1]
+	return randomLetter, nil
+}
+
+func (bag LetterBag) AddLetterCounts(letterCounts map[rune]int) {
+	for letter, count := range letterCounts {
+		for i := 0; i < count; i++ {
+			bag = append(bag, letter)
+		}
+	}
+	bag.shuffle()
+}
 
 func (position *Position) Transpose() {
 	position.Row, position.Column = position.Column, position.Row
@@ -116,7 +258,7 @@ func NewTile(y, x, wordMultiplier, letterMultiplier int) *BoardTile {
 			Row:    y,
 			Column: x,
 		},
-		CrossCheckSet : nil,
+		CrossCheckSet: nil,
 	}
 }
 
@@ -197,13 +339,13 @@ func GetAnchors(board Board) []*BoardTile {
 // the prefix score and the suffix score. Where the prefix score
 // and the suffix scores are the sums of the scores of the letters
 // of the prefix above the tile and the suffix below the tile.
-func CrossCheck(tile *BoardTile, board Board, trie lexicon.Node) (map[rune]bool, int) {
+func CrossCheck(tile *BoardTile, board Board, lexi Lexicon) (set.RuneSet, int) {
 	prefix, prefixScore := GetPrefixAbove(tile, board)
 	suffix, suffixScore := GetSuffixBelow(tile, board)
 	if prefix == "" && suffix == "" {
 		return nil, 0
 	}
-	return trie.ValidLettersBetweenPrefixAndSuffix(prefix, suffix), prefixScore + suffixScore
+	return lexi.ValidLettersBetweenPrefixAndSuffix(prefix, suffix), prefixScore + suffixScore
 }
 
 // GetPrefixAbove finds the prefix and the score
@@ -261,14 +403,12 @@ func (move *Move) CalculateScore(board Board) (int, error) {
 	horizontalWordMultiplier := 1
 	tilesPlaced := 0
 
-	for i, char := range word {
+	for i, char := range move.Word {
 		tile := board[y][x+i]
+		letterScore := letterScores[char] * tile.LetterMultiplier
 		if move.BlankTiles[i] {
-			letterScore := 0
-		} else {
-			letterScore := letterScores[char] * tile.LetterMultiplier
+			letterScore = 0
 		}
-
 		horizontalScore += letterScore
 
 		if tile.Letter == 0 {
@@ -300,16 +440,16 @@ func reverse(s string) string {
 	return string(rns)
 }
 
-// TODO: allow passing generator function as an argument somehow (abstracting the lexicon)
+// TODO: allow passing generator function as an argument somehow (abstracting the Lexicon)
 // TODO: how to handle snchor skipping for GADDAG?
-func GetLegalMoves(board Board, rack map[rune]int, anchors []*BoardTile, trie *lexicon.Node) []*Move {
+func GetLegalMoves(board Board, rack *Rack, anchors []*BoardTile, lexi Lexicon) []*Move {
 
 	moves := make([]*Move, 0)
 
 	transposed := false
 
 	for i := 0; i < 2; i++ {
-		for anchor := range anchors {
+		for _, anchor := range anchors {
 			appendToMoves := func(prefix, word string, blanks []bool) {
 				x := anchor.BoardPosition.Column - len(prefix)
 				y := anchor.BoardPosition.Row
@@ -325,7 +465,7 @@ func GetLegalMoves(board Board, rack map[rune]int, anchors []*BoardTile, trie *l
 				}
 				_ = append(moves, move)
 			}
-			GenerateWordsFromAnchorWithTrie(board, rack, anchor, trie, appendToMoves)
+			GenerateWordsFromAnchorWithTrie(board, rack, anchor, lexi, appendToMoves)
 		}
 		Transpose(board)
 		transposed = true
@@ -333,71 +473,68 @@ func GetLegalMoves(board Board, rack map[rune]int, anchors []*BoardTile, trie *l
 	return moves
 }
 
-func GenerateWordsFromAnchorWithTrie(board Board, rack map[rune]int, anchor *BoardTile, trie *lexicon.Node, processPrefixWordAndBlanks func(string, string, []bool)) {
+func GenerateWordsFromAnchorWithTrie(board Board, rack *Rack, anchor *BoardTile, lexi Lexicon, processPrefixWordAndBlanks func(string, string, []bool)) {
 
 	currDirection := left
 	currBoardTile := anchor.GetAdjacentTile(board, 0, currDirection)
-	inRack := func(edgeChar rune) bool {
-		return rack[edgeChar] == 0 && rack[0] == 0
-	}
 	inRackAndCrossSet := func(edgeChar rune) bool {
-		return inRack(edgeChar) && (currBoardTile.CrossCheckSet == nil || currBoardTile.CrossCheckSet[edgeChar])
+		return rack.Contains(edgeChar) && (currBoardTile.CrossCheckSet == nil || currBoardTile.CrossCheckSet.Contains(edgeChar))
 	}
 
 	blanks := make([]bool, len(board))
-	fromRackShiftTile := func(edgeChar rune, nextNode *lexicon.Node) {
+	fromRackShiftTile := func(edgeChar rune, nextNode Lexicon) {
 		if currBoardTile.Letter == 0 {
-			if rack[edgeChar] == 0 {
-				blanks[len(nextNode.Label)-1] = true
-				rack[0]--
+			if rack.HasTile('*') {
+				blanks[len(nextNode.Label())-1] = true
+				rack.RemoveRune('*')
 			} else {
-				rack[edgeChar]--
+				rack.RemoveRune(edgeChar)
 			}
 		}
 		currBoardTile = anchor.GetAdjacentTile(board, 0, currDirection)
 	}
-	toRackShiftTileBack := func(edgeChar rune, nextNode *lexicon.Node) {
+	toRackShiftTileBack := func(edgeChar rune, nextNode Lexicon) {
 		if currBoardTile.Letter == 0 {
-			if blanks[len(nextNode.Label)-1] {
-				rack[0]++
-				blanks[len(nextNode.Label)-1] = false
+			if blanks[len(nextNode.Label())-1] {
+				rack.AddRune('*')
+				blanks[len(nextNode.Label())-1] = false
 			} else {
-				rack[edgeChar]++
+				rack.AddRune(edgeChar)
 			}
 		}
 		currBoardTile = anchor.GetAdjacentTile(board, 0, -currDirection)
 	}
 
-	untilEdge := func(node *lexicon.Node) bool {
+	untilEdge := func(node Lexicon) bool {
 		return currBoardTile == nil
 	}
-	untilAnchorOrEdge := func(node *lexicon.Node) bool {
+	untilAnchorOrEdge := func(node Lexicon) bool {
 		return untilEdge(node) || currBoardTile.IsAnchor
 	}
 
 	prefix := ""
-	processWord := func(wordNode *lexicon.Node) {
-		if !wordNode.Terminal {
+	processWord := func(wordNode Lexicon) {
+		if !wordNode.Terminal() {
 			return
 		}
-		word := wordNode.Label
+		word := wordNode.Label()
 		resultBlanks := make([]bool, len(word))
 		copy(blanks, resultBlanks)
 		processPrefixWordAndBlanks(prefix, word, resultBlanks)
 	}
-	extendPrefix := func(prefixNode *lexicon.Node) {
+	extendPrefix := func(prefixNode Lexicon) {
 
 		prefixBoardTile := currBoardTile
 		currBoardTile = anchor
 		currDirection = right
 
-		prefix = prefixNode.Label
+		prefix = prefixNode.Label()
 		prefixNode.GenerateNodesWithPruning(inRackAndCrossSet, fromRackShiftTile, toRackShiftTileBack, untilEdge, processWord)
 
 		currBoardTile = prefixBoardTile
 		currDirection = left
 	}
-	trie.GenerateNodesWithPruning(inRack, fromRackShiftTile, toRackShiftTileBack, untilAnchorOrEdge, extendPrefix)
+	lexi.GenerateNodesWithPruning(rack.Contains, fromRackShiftTile, toRackShiftTileBack, untilAnchorOrEdge, extendPrefix)
 }
 
 func (tile *BoardTile) GetAdjacentTile(board Board, vertical, horizontal int) *BoardTile {
@@ -408,8 +545,9 @@ func (tile *BoardTile) GetAdjacentTile(board Board, vertical, horizontal int) *B
 }
 
 // PerformMove places tiles on the board from the rack.
-// Update cross sets / anchors
-func PerformMove(move *Move, board Board, rack map[rune]int, trie lexicon.Node) {
+// Updates cross sets and anchors
+// TODO: should return the new list of anchors
+func PerformMove(move *Move, board Board, rack *Rack, lexi Lexicon) {
 
 	if !move.Horizontal {
 		Transpose(board)
@@ -419,7 +557,7 @@ func PerformMove(move *Move, board Board, rack map[rune]int, trie lexicon.Node) 
 	x := move.StartPosition.Column
 
 	if x > 0 {
-		leftTile := BoardTile[y][x-1]
+		leftTile := board[y][x-1]
 		if leftTile.Letter == 0 {
 			leftTile.IsAnchor = true
 		}
@@ -432,28 +570,31 @@ func PerformMove(move *Move, board Board, rack map[rune]int, trie lexicon.Node) 
 		}
 		if move.BlankTiles[i] {
 			currTile.LetterMultiplier = 0
+			rack.RemoveRune('*')
 		} else {
 			currTile.LetterMultiplier = 1
+			rack.RemoveRune(char)
 		}
 
 		// the crossCheckSet is set to the placed character to ensure
-		// lexicon traversals are constrained to the placed character
+		// Lexicon traversals are constrained to the placed character
 		// when considering new moves that pass through this board position.
-		currTile.CrossCheckSet = map[rune]bool{char: true}
+		currTile.CrossCheckSet = set.New(len(letterCounts))
+		currTile.CrossCheckSet.AddRune(char)
 		currTile.Letter = char
 		currTile.IsAnchor = false
 
-		for i, direction := range []int{above, below} {
+		for _, direction := range []int{above, below} {
 			adjTile := currTile.GetAdjacentTile(board, direction, 0)
 			if adjTile != nil && adjTile.Letter == 0 {
 				adjTile.IsAnchor = true
 			}
 		}
-		UpdateAdjacentCrossCheckSets(tile, board, trie)
+		UpdateAdjacentCrossCheckSets(currTile, board, lexi)
 	}
 
-	if (x + len(word)) < len(board) {
-		rightTile := BoardTile[y][x+len(word)]
+	if (x + len(move.Word)) < len(board) {
+		rightTile := board[y][x+len(move.Word)]
 		if rightTile.Letter == 0 {
 			rightTile.IsAnchor = true
 		}
@@ -464,12 +605,12 @@ func PerformMove(move *Move, board Board, rack map[rune]int, trie lexicon.Node) 
 	}
 }
 
-func UpdateAdjacentCrossCheckSets(tile *BoardTile, board Board, trie lexicon.Node) {
+func UpdateAdjacentCrossCheckSets(tile *BoardTile, board Board, lexi Lexicon) {
 	currTile := tile
 	for ; currTile != nil && currTile.Letter != 0; currTile = currTile.GetAdjacentTile(board, above, 0) {
 	}
 	if currTile != nil {
-		currTile.CrossCheckSet, currTile.CrossScore = CrossCheck(currTile, board, trie)
+		currTile.CrossCheckSet, currTile.CrossScore = CrossCheck(currTile, board, lexi)
 	}
 
 	currTile = tile
@@ -477,32 +618,78 @@ func UpdateAdjacentCrossCheckSets(tile *BoardTile, board Board, trie lexicon.Nod
 	}
 
 	if currTile != nil {
-		currTile.CrossCheckSet, currTile.CrossScore = CrossCheck(currTile, board, trie)
+		currTile.CrossCheckSet, currTile.CrossScore = CrossCheck(currTile, board, lexi)
 	}
 }
 
-func PlayGame() {
-	// generate n racks from the letter bag
-	// generate moves for the first player
-	// pick the move with the highest score
-	// play that move
-	// iterate to next player
-	// continue until game is complete
-	// identify winner
+// Plays a Game with n players and returns the winner
+func PlayGame(numberOfPlayers int, lexi Lexicon) (int, error) {
+
+	letterBag := newLetterBag(letterCounts)
+	if (numberOfPlayers * rackSize) < len(letterBag) {
+		return -1, fmt.Errorf(
+			"too many players (%v) for the rackSize (%v) and number of letters in letter bag (%v)",
+			numberOfPlayers,
+			rackSize,
+			len(letterBag),
+		)
+	}
+	racks := make([]*Rack, numberOfPlayers)
+	for player := range racks {
+		racks[player] = newRack()
+		err := racks[player].FillRack(letterBag)
+		if err != nil {
+			return -1, err
+		}
+	}
+
+	anyPlayerHasMove := true
+	scores := make([]int, numberOfPlayers)
+	board := NewBoard(wwfWordMultipliers, wwfLetterMultipliers)
+	anchors := []*BoardTile{board[len(board)/2][len(board)/2]}
+
+	for anyPlayerHasMove {
+		anyPlayerHasMove = false
+
+		for player, rack := range racks {
+			playerMoves := GetLegalMoves(board, rack, anchors, lexi)
+			if len(playerMoves) == 0 {
+				newRack := newRack()
+				err := newRack.FillRack(letterBag)
+				if err != nil {
+					return -1, err
+				}
+				letterBag.AddLetterCounts(racks[player].letterCounts)
+				racks[player] = newRack
+				continue
+			}
+
+			anyPlayerHasMove = true
+			bestMove := playerMoves[0]
+			for _, move := range playerMoves[1:] {
+				if move.Score > bestMove.Score {
+					bestMove = move
+				}
+			}
+			PerformMove(bestMove, board, racks[player], lexi)
+			scores[player] += bestMove.Score
+			err := racks[player].FillRack(letterBag)
+			if err != nil {
+				return -1, err
+			}
+			if racks[player].tileCount == 0 && len(letterBag) == 0 {
+				return player, nil // winner!
+			}
+		}
+	}
+
+	winner := 0
+	highestScore := -1
+	for player, score := range scores {
+		if score > highestScore {
+			highestScore = score
+			winner = player
+		}
+	}
+	return winner, nil
 }
-
-// TODO: Implement play game
-// TODO: Test transposing
-// TODO: Test score calculation
-// TODO: Test move generation
-// TODO: Test move placing
-// TODO: Test game playing
-
-// TODO: Implement bitset representation for crossCheckSets and trie edges.
-// TODO: Try out different representations for bitset (uint64, bitset, roaring)
-// TODO: Abstract out set representation as an interface
-// TODO: Compare performance between representations
-
-// TODO: Optimise edge following (vs current pruning) in trie
-// TODO: Implement DAWG
-// TODO: Implement GADDAG

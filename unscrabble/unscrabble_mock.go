@@ -5,6 +5,7 @@
 package unscrabble
 
 import (
+	set "example.com/unscrabble/set"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 )
@@ -32,25 +33,11 @@ func (m *MockLexicon) EXPECT() *MockLexiconMockRecorder {
 	return m.recorder
 }
 
-// Contains mocks base method
-func (m *MockLexicon) Contains(arg0 string) bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Contains", arg0)
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// Contains indicates an expected call of Contains
-func (mr *MockLexiconMockRecorder) Contains(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Contains", reflect.TypeOf((*MockLexicon)(nil).Contains), arg0)
-}
-
 // ValidLettersBetweenPrefixAndSuffix mocks base method
-func (m *MockLexicon) ValidLettersBetweenPrefixAndSuffix(arg0, arg1 string) map[rune]struct{} {
+func (m *MockLexicon) ValidLettersBetweenPrefixAndSuffix(arg0, arg1 string) set.RuneSet {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidLettersBetweenPrefixAndSuffix", arg0, arg1)
-	ret0, _ := ret[0].(map[rune]struct{})
+	ret0, _ := ret[0].(set.RuneSet)
 	return ret0
 }
 
@@ -58,4 +45,44 @@ func (m *MockLexicon) ValidLettersBetweenPrefixAndSuffix(arg0, arg1 string) map[
 func (mr *MockLexiconMockRecorder) ValidLettersBetweenPrefixAndSuffix(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidLettersBetweenPrefixAndSuffix", reflect.TypeOf((*MockLexicon)(nil).ValidLettersBetweenPrefixAndSuffix), arg0, arg1)
+}
+
+// GenerateNodesWithPruning mocks base method
+func (m *MockLexicon) GenerateNodesWithPruning(arg0 func(rune) bool, arg1, arg2 func(rune, Lexicon), arg3 func(Lexicon) bool, arg4 func(Lexicon)) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "GenerateNodesWithPruning", arg0, arg1, arg2, arg3, arg4)
+}
+
+// GenerateNodesWithPruning indicates an expected call of GenerateNodesWithPruning
+func (mr *MockLexiconMockRecorder) GenerateNodesWithPruning(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateNodesWithPruning", reflect.TypeOf((*MockLexicon)(nil).GenerateNodesWithPruning), arg0, arg1, arg2, arg3, arg4)
+}
+
+// Terminal mocks base method
+func (m *MockLexicon) Terminal() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Terminal")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// Terminal indicates an expected call of Terminal
+func (mr *MockLexiconMockRecorder) Terminal() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Terminal", reflect.TypeOf((*MockLexicon)(nil).Terminal))
+}
+
+// Label mocks base method
+func (m *MockLexicon) Label() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Label")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Label indicates an expected call of Label
+func (mr *MockLexiconMockRecorder) Label() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Label", reflect.TypeOf((*MockLexicon)(nil).Label))
 }

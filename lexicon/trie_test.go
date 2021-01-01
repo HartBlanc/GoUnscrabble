@@ -1,6 +1,7 @@
 package lexicon
 
 import (
+	"example.com/unscrabble/set"
 	assert "github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -279,7 +280,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "o")
 		assert.Equal(
 			t,
-			map[rune]bool{
+			set.RuneMap{
 				'd': true,
 			},
 			crossSet,
@@ -289,7 +290,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("do", "")
 		assert.Equal(
 			t,
-			map[rune]bool{
+			set.RuneMap{
 				'g': true,
 			},
 			crossSet,
@@ -299,7 +300,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "")
 		assert.Equal(
 			t,
-			map[rune]bool{'a': true},
+			set.RuneMap{'a': true},
 			crossSet,
 		)
 	})
@@ -307,7 +308,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("ca", "s")
 		assert.Equal(
 			t,
-			map[rune]bool{
+			set.RuneMap{
 				'r': true,
 				't': true,
 			},
@@ -318,7 +319,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "z")
 		assert.Equal(
 			t,
-			map[rune]bool{},
+			set.RuneMap{},
 			crossSet,
 		)
 	})
@@ -326,7 +327,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("z", "")
 		assert.Equal(
 			t,
-			map[rune]bool{},
+			set.RuneMap{},
 			crossSet,
 		)
 	})
@@ -334,7 +335,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("a", "")
 		assert.Equal(
 			t,
-			map[rune]bool{},
+			set.RuneMap{},
 			crossSet,
 		)
 	})
@@ -342,7 +343,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("d", "n")
 		assert.Equal(
 			t,
-			map[rune]bool{},
+			set.RuneMap{},
 			crossSet,
 		)
 	})

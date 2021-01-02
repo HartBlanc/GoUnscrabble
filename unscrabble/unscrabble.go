@@ -297,30 +297,34 @@ func GetAnchors(board Board) []*BoardTile {
 
 // TODO: allow passing generator function as an argument somehow (abstracting the Lexicon)
 // TODO: how to handle snchor skipping for GADDAG?
-func GetLegalMoves(board Board, rack *Rack, anchors []*BoardTile, lexi Lexicon) []*Move {
+func GetLegalMoves(board Board, rack *Rack, lexi Lexicon) []*Move {
 
 	moves := make([]*Move, 0)
-
 	transposed := false
 
 	for i := 0; i < 2; i++ {
-		for _, anchor := range anchors {
-			appendToMoves := func(prefix, word string, blanks []bool) {
-				x := anchor.BoardPosition.Column - len(prefix)
-				y := anchor.BoardPosition.Row
-				move := &Move{
-					StartPosition: &Position{Row: y, Column: x},
-					Horizontal:    !transposed,
-					Word:          word,
-					BlankTiles:    blanks,
+		for _, row := range board {
+			for _, anchor := range row {
+				if !anchor.IsAnchor {
+					continue
 				}
-				move.Score, _ = move.CalculateScore(board)
-				if transposed {
-					move.StartPosition.Transpose()
+				appendToMoves := func(prefix, word string, blanks []bool) {
+					x := anchor.BoardPosition.Column - len(prefix)
+					y := anchor.BoardPosition.Row
+					move := &Move{
+						StartPosition: &Position{Row: y, Column: x},
+						Horizontal:    !transposed,
+						Word:          word,
+						BlankTiles:    blanks,
+					}
+					move.Score, _ = move.CalculateScore(board)
+					if transposed {
+						move.StartPosition.Transpose()
+					}
+					moves = append(moves, move)
 				}
-				_ = append(moves, move)
+				GenerateWordsFromAnchorWithTrie(board, rack, anchor, lexi, appendToMoves)
 			}
-			GenerateWordsFromAnchorWithTrie(board, rack, anchor, lexi, appendToMoves)
 		}
 		Transpose(board)
 		transposed = true
@@ -635,13 +639,12 @@ func PlayGame(numberOfPlayers int, lexi Lexicon) (int, error) {
 	anyPlayerHasMove := true
 	scores := make([]int, numberOfPlayers)
 	board := NewBoard(wwfWordMultipliers, wwfLetterMultipliers)
-	anchors := []*BoardTile{board[len(board)/2][len(board)/2]}
 
 	for anyPlayerHasMove {
 		anyPlayerHasMove = false
 
 		for player, rack := range racks {
-			playerMoves := GetLegalMoves(board, rack, anchors, lexi)
+			playerMoves := GetLegalMoves(board, rack, lexi)
 			if len(playerMoves) == 0 {
 				newRack := newRack()
 				err := newRack.FillRack(letterBag)

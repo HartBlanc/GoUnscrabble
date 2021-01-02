@@ -110,6 +110,29 @@ type Lexicon interface {
 	Label() string
 }
 
+type Position struct {
+	Row    int
+	Column int
+}
+
+func (position *Position) Transpose() {
+	position.Row, position.Column = position.Column, position.Row
+}
+
+// Transpose transposes the tiles of the board.
+// This is achieved using an in-place transformation.
+// This works on the assumption that the board is square.
+
+func Transpose(board Board) {
+	for y := range board {
+		for x := y + 1; x < len(board); x++ {
+			board[y][x].BoardPosition.Transpose()
+			board[x][y].BoardPosition.Transpose()
+			board[y][x], board[x][y] = board[x][y], board[y][x]
+		}
+	}
+}
+
 // BoardTile is a data structure which contains information relating
 // to a possibly empty tile on the board.
 type BoardTile struct {
@@ -120,134 +143,6 @@ type BoardTile struct {
 	CrossScore       int
 	IsAnchor         bool
 	BoardPosition    *Position
-}
-
-type Move struct {
-	StartPosition *Position
-	Horizontal    bool // true is horizontal, false is vertical
-	Word          string
-	BlankTiles    []bool
-	Score         int
-}
-
-// The rack is an abstract data type which is essentially a multi-set.
-// However, the rack also maintains a traditional set based on the presence
-// of at least one count of the letter being present in the multiset.
-// This allows for efficient set operations to be calculated with other sets of
-// interest (e.g. cross-check sets and trie edge sets).
-type Rack struct {
-	letterCounts map[rune]int
-	letterSet    set.RuneSet
-	tileCount    int
-}
-
-func (rack *Rack) AddRune(letter rune) {
-	rack.letterCounts[letter]++
-	rack.tileCount++
-	if letter != '*' {
-		rack.letterSet.AddRune(letter)
-	}
-}
-
-func (rack *Rack) RemoveRune(letter rune) {
-	if rack.letterCounts[letter] == 0 {
-		return
-	}
-	rack.letterCounts[letter]--
-	rack.tileCount--
-	if rack.letterCounts[letter] == 0 && letter != '*' {
-		rack.letterSet.RemoveRune(letter)
-	}
-}
-
-// Contains tells us whether the rack contains a letter.
-// If the rack contains a blank tile, it contains all letters.
-func (rack *Rack) Contains(letter rune) bool {
-	if rack.letterCounts['*'] > 0 {
-		return true
-	}
-	return rack.letterSet.Contains(letter)
-}
-
-// Has tile asks if the rack actually contains the tile.
-// Wildcards are treated identically to all other tiles.
-func (rack *Rack) HasTile(tileLetter rune) bool {
-	return rack.letterCounts[tileLetter] > 0
-}
-
-func (rack *Rack) Intersection(otherRuneSet set.RuneSet) set.RuneSet {
-	if rack.letterCounts['*'] > 0 {
-		return otherRuneSet
-	}
-	return rack.letterSet.Intersection(otherRuneSet)
-}
-
-func (rack *Rack) FillRack(letterBag LetterBag) error {
-	for rack.tileCount < rackSize && len(letterBag) > 0 {
-		randomLetter, err := letterBag.PopRandomLetter()
-		if err != nil {
-			return err
-		}
-		rack.AddRune(randomLetter)
-	}
-	return nil
-}
-
-func newRack() *Rack {
-	return &Rack{
-		letterSet: set.New(rackSize),
-	}
-}
-
-// The letter bag is an abstract data structure which allows for
-// efficient random sampling without replacement. This is achieved by using
-// stack-like item popping and shuffling the underlying array
-// any time a new item is added.
-type LetterBag []rune
-
-type Position struct {
-	Row    int
-	Column int
-}
-
-type Board [][]*BoardTile
-
-func newLetterBag(letterCounts map[rune]int) LetterBag {
-	numLetters := 0
-	for _, count := range letterCounts {
-		numLetters += count
-	}
-	bag := make(LetterBag, 0, numLetters)
-	bag.AddLetterCounts(letterCounts)
-	return bag
-}
-
-func (bag LetterBag) shuffle() {
-	rand.Shuffle(len(bag), func(i, j int) {
-		bag[i], bag[j] = bag[j], bag[i]
-	})
-}
-
-func (bag LetterBag) PopRandomLetter() (rune, error) {
-	if len(bag) == 0 {
-		return -1, errors.New("bag is empty!")
-	}
-	randomLetter := bag[len(bag)-1]
-	bag = bag[:len(bag)-1]
-	return randomLetter, nil
-}
-
-func (bag LetterBag) AddLetterCounts(letterCounts map[rune]int) {
-	for letter, count := range letterCounts {
-		for i := 0; i < count; i++ {
-			bag = append(bag, letter)
-		}
-	}
-	bag.shuffle()
-}
-
-func (position *Position) Transpose() {
-	position.Row, position.Column = position.Column, position.Row
 }
 
 func NewTile(y, x, wordMultiplier, letterMultiplier int) *BoardTile {
@@ -262,75 +157,11 @@ func NewTile(y, x, wordMultiplier, letterMultiplier int) *BoardTile {
 	}
 }
 
-// NewBoard returns a new empty board (a 2D slice of Tiles) from 2D slices
-// of word multipliers and letter multipliers.
-func NewBoard(wordMultipliers, letterMultipliers [][]int) Board {
-	boardSize := len(wordMultipliers)
-	board := make(Board, boardSize)
-	for y := range board {
-		board[y] = make([]*BoardTile, boardSize)
-		for x := range board[y] {
-			board[y][x] = NewTile(
-				y,
-				x,
-				wordMultipliers[y][x],
-				letterMultipliers[y][x],
-			)
-		}
+func (tile *BoardTile) GetAdjacentTile(board Board, vertical, horizontal int) *BoardTile {
+	if tile.BoardPosition.Column+horizontal < 0 || tile.BoardPosition.Column+horizontal >= len(board) {
+		return nil
 	}
-	board[boardSize/2][boardSize/2].IsAnchor = true
-	return board
-}
-
-// Transpose transposes the tiles of the board.
-// This is achieved using an in-place transformation.
-// This works on the assumption that the board is square.
-func Transpose(board Board) {
-	for y := range board {
-		for x := y + 1; x < len(board); x++ {
-			board[y][x].BoardPosition.Transpose()
-			board[x][y].BoardPosition.Transpose()
-			board[y][x], board[x][y] = board[x][y], board[y][x]
-		}
-	}
-}
-
-// GetAnchors finds the anchors of the rows.
-// aka the candidate anchors of the words.
-// These anchors are the empty squares which are adjacent
-// (horizontally or vertically) to another square.
-// TODO: get these incrementally?
-func GetAnchors(board Board) []*BoardTile {
-	anchors := make([]*BoardTile, 0, len(board)*len(board))
-	for y, row := range board {
-		for x, tile := range row {
-			if !(tile.Letter == 0) {
-				continue
-			}
-
-			if y > 0 && board[y-1][x].Letter != 0 {
-				anchors = append(anchors, tile)
-				continue
-			}
-
-			if y < (len(board)-1) && board[y+1][x].Letter != 0 {
-				anchors = append(anchors, tile)
-				continue
-			}
-
-			if x > 0 && board[y][x-1].Letter != 0 {
-				anchors = append(anchors, tile)
-				continue
-			}
-
-			if x < (len(board)-1) && board[y][x+1].Letter != 0 {
-				anchors = append(anchors, tile)
-				continue
-			}
-		}
-
-	}
-	return anchors
+	return board[tile.BoardPosition.Row+vertical][tile.BoardPosition.Column+horizontal]
 }
 
 // CrossCheck finds the cross check set and the cross score of a tile.
@@ -387,58 +218,81 @@ func GetSuffixBelow(tile *BoardTile, board Board) (string, int) {
 	return sb.String(), score
 }
 
-func (move *Move) CalculateScore(board Board) (int, error) {
-	y := move.StartPosition.Row
-	x := move.StartPosition.Column
-
-	if len(move.BlankTiles) != len(move.Word) {
-		return 0, errors.New("blanks should be same length as word")
+func UpdateAdjacentCrossCheckSets(tile *BoardTile, board Board, lexi Lexicon) {
+	currTile := tile
+	for ; currTile != nil && currTile.Letter != 0; currTile = currTile.GetAdjacentTile(board, above, 0) {
+	}
+	if currTile != nil {
+		currTile.CrossCheckSet, currTile.CrossScore = CrossCheck(currTile, board, lexi)
 	}
 
-	if len(move.Word) > (len(board) - x) {
-		return 0, errors.New("word extends beyond end of board")
+	currTile = tile
+	for ; currTile != nil && currTile.Letter != 0; currTile = currTile.GetAdjacentTile(board, below, 0) {
 	}
 
-	crossScore := 0
-	horizontalScore := 0
-	horizontalWordMultiplier := 1
-	tilesPlaced := 0
-
-	for i, char := range move.Word {
-		tile := board[y][x+i]
-		letterScore := letterScores[char] * tile.LetterMultiplier
-		if move.BlankTiles[i] {
-			letterScore = 0
-		}
-		horizontalScore += letterScore
-
-		if tile.Letter == 0 {
-			horizontalWordMultiplier *= tile.WordMultiplier
-			if tile.CrossCheckSet != nil {
-				crossScore += (tile.CrossScore + letterScore) * tile.WordMultiplier
-			}
-			tilesPlaced += 1
-		}
+	if currTile != nil {
+		currTile.CrossCheckSet, currTile.CrossScore = CrossCheck(currTile, board, lexi)
 	}
-	horizontalScore *= horizontalWordMultiplier
-	score := horizontalScore + crossScore
-	if tilesPlaced == rackSize {
-		score += bingoPremium
-	}
-	return score, nil
 }
 
-func reverse(s string) string {
-	rns := []rune(s) // convert to rune
-	for i, j := 0, len(rns)-1; i < j; i, j = i+1, j-1 {
+type Board [][]*BoardTile
 
-		// swap the letters of the string,
-		// like first with last and so on.
-		rns[i], rns[j] = rns[j], rns[i]
+// NewBoard returns a new empty board (a 2D slice of Tiles) from 2D slices
+// of word multipliers and letter multipliers.
+func NewBoard(wordMultipliers, letterMultipliers [][]int) Board {
+	boardSize := len(wordMultipliers)
+	board := make(Board, boardSize)
+	for y := range board {
+		board[y] = make([]*BoardTile, boardSize)
+		for x := range board[y] {
+			board[y][x] = NewTile(
+				y,
+				x,
+				wordMultipliers[y][x],
+				letterMultipliers[y][x],
+			)
+		}
 	}
+	board[boardSize/2][boardSize/2].IsAnchor = true
+	return board
+}
 
-	// return the reversed string.
-	return string(rns)
+// GetAnchors finds the anchors of the rows.
+// aka the candidate anchors of the words.
+// These anchors are the empty squares which are adjacent
+// (horizontally or vertically) to another square.
+// TODO: get these incrementally?
+func GetAnchors(board Board) []*BoardTile {
+	anchors := make([]*BoardTile, 0, len(board)*len(board))
+	for y, row := range board {
+		for x, tile := range row {
+			if !(tile.Letter == 0) {
+				continue
+			}
+
+			if y > 0 && board[y-1][x].Letter != 0 {
+				anchors = append(anchors, tile)
+				continue
+			}
+
+			if y < (len(board)-1) && board[y+1][x].Letter != 0 {
+				anchors = append(anchors, tile)
+				continue
+			}
+
+			if x > 0 && board[y][x-1].Letter != 0 {
+				anchors = append(anchors, tile)
+				continue
+			}
+
+			if x < (len(board)-1) && board[y][x+1].Letter != 0 {
+				anchors = append(anchors, tile)
+				continue
+			}
+		}
+
+	}
+	return anchors
 }
 
 // TODO: allow passing generator function as an argument somehow (abstracting the Lexicon)
@@ -538,13 +392,6 @@ func GenerateWordsFromAnchorWithTrie(board Board, rack *Rack, anchor *BoardTile,
 	lexi.GenerateNodesWithPruning(rack.Contains, fromRackShiftTile, toRackShiftTileBack, untilAnchorOrEdge, extendPrefix)
 }
 
-func (tile *BoardTile) GetAdjacentTile(board Board, vertical, horizontal int) *BoardTile {
-	if tile.BoardPosition.Column+horizontal < 0 || tile.BoardPosition.Column+horizontal >= len(board) {
-		return nil
-	}
-	return board[tile.BoardPosition.Row+vertical][tile.BoardPosition.Column+horizontal]
-}
-
 // PerformMove places tiles on the board from the rack.
 // Updates cross sets and anchors
 // TODO: should return the new list of anchors
@@ -606,21 +453,162 @@ func PerformMove(move *Move, board Board, rack *Rack, lexi Lexicon) {
 	}
 }
 
-func UpdateAdjacentCrossCheckSets(tile *BoardTile, board Board, lexi Lexicon) {
-	currTile := tile
-	for ; currTile != nil && currTile.Letter != 0; currTile = currTile.GetAdjacentTile(board, above, 0) {
-	}
-	if currTile != nil {
-		currTile.CrossCheckSet, currTile.CrossScore = CrossCheck(currTile, board, lexi)
+type Move struct {
+	StartPosition *Position
+	Horizontal    bool // true is horizontal, false is vertical
+	Word          string
+	BlankTiles    []bool
+	Score         int
+}
+
+func (move *Move) CalculateScore(board Board) (int, error) {
+	y := move.StartPosition.Row
+	x := move.StartPosition.Column
+
+	if len(move.BlankTiles) != len(move.Word) {
+		return 0, errors.New("blanks should be same length as word")
 	}
 
-	currTile = tile
-	for ; currTile != nil && currTile.Letter != 0; currTile = currTile.GetAdjacentTile(board, below, 0) {
+	if len(move.Word) > (len(board) - x) {
+		return 0, errors.New("word extends beyond end of board")
 	}
 
-	if currTile != nil {
-		currTile.CrossCheckSet, currTile.CrossScore = CrossCheck(currTile, board, lexi)
+	crossScore := 0
+	horizontalScore := 0
+	horizontalWordMultiplier := 1
+	tilesPlaced := 0
+
+	for i, char := range move.Word {
+		tile := board[y][x+i]
+		letterScore := letterScores[char] * tile.LetterMultiplier
+		if move.BlankTiles[i] {
+			letterScore = 0
+		}
+		horizontalScore += letterScore
+
+		if tile.Letter == 0 {
+			horizontalWordMultiplier *= tile.WordMultiplier
+			if tile.CrossCheckSet != nil {
+				crossScore += (tile.CrossScore + letterScore) * tile.WordMultiplier
+			}
+			tilesPlaced += 1
+		}
 	}
+	horizontalScore *= horizontalWordMultiplier
+	score := horizontalScore + crossScore
+	if tilesPlaced == rackSize {
+		score += bingoPremium
+	}
+	return score, nil
+}
+
+// The rack is an abstract data type which is essentially a multi-set.
+// However, the rack also maintains a traditional set based on the presence
+// of at least one count of the letter being present in the multiset.
+// This allows for efficient set operations to be calculated with other sets of
+// interest (e.g. cross-check sets and trie edge sets).
+type Rack struct {
+	letterCounts map[rune]int
+	letterSet    set.RuneSet
+	tileCount    int
+}
+
+func newRack() *Rack {
+	return &Rack{
+		letterSet: set.New(rackSize),
+	}
+}
+
+func (rack *Rack) AddRune(letter rune) {
+	rack.letterCounts[letter]++
+	rack.tileCount++
+	if letter != '*' {
+		rack.letterSet.AddRune(letter)
+	}
+}
+
+func (rack *Rack) RemoveRune(letter rune) {
+	if rack.letterCounts[letter] == 0 {
+		return
+	}
+	rack.letterCounts[letter]--
+	rack.tileCount--
+	if rack.letterCounts[letter] == 0 && letter != '*' {
+		rack.letterSet.RemoveRune(letter)
+	}
+}
+
+// Contains tells us whether the rack contains a letter.
+// If the rack contains a blank tile, it contains all letters.
+func (rack *Rack) Contains(letter rune) bool {
+	if rack.letterCounts['*'] > 0 {
+		return true
+	}
+	return rack.letterSet.Contains(letter)
+}
+
+// Has tile asks if the rack actually contains the tile.
+// Wildcards are treated identically to all other tiles.
+func (rack *Rack) HasTile(tileLetter rune) bool {
+	return rack.letterCounts[tileLetter] > 0
+}
+
+func (rack *Rack) Intersection(otherRuneSet set.RuneSet) set.RuneSet {
+	if rack.letterCounts['*'] > 0 {
+		return otherRuneSet
+	}
+	return rack.letterSet.Intersection(otherRuneSet)
+}
+
+func (rack *Rack) FillRack(letterBag LetterBag) error {
+	for rack.tileCount < rackSize && len(letterBag) > 0 {
+		randomLetter, err := letterBag.PopRandomLetter()
+		if err != nil {
+			return err
+		}
+		rack.AddRune(randomLetter)
+	}
+	return nil
+}
+
+// The letter bag is an abstract data structure which allows for
+// efficient random sampling without replacement. This is achieved by using
+// stack-like item popping and shuffling the underlying array
+// any time a new item is added.
+type LetterBag []rune
+
+func newLetterBag(letterCounts map[rune]int) LetterBag {
+	numLetters := 0
+	for _, count := range letterCounts {
+		numLetters += count
+	}
+	bag := make(LetterBag, 0, numLetters)
+	bag.AddLetterCounts(letterCounts)
+	return bag
+}
+
+func (bag LetterBag) shuffle() {
+	rand.Shuffle(len(bag), func(i, j int) {
+		bag[i], bag[j] = bag[j], bag[i]
+	})
+}
+
+func (bag LetterBag) PopRandomLetter() (rune, error) {
+	if len(bag) == 0 {
+		return -1, errors.New("bag is empty!")
+	}
+	randomLetter := bag[len(bag)-1]
+	bag = bag[:len(bag)-1]
+	return randomLetter, nil
+}
+
+func (bag LetterBag) AddLetterCounts(letterCounts map[rune]int) {
+	for letter, count := range letterCounts {
+		for i := 0; i < count; i++ {
+			bag = append(bag, letter)
+		}
+	}
+	bag.shuffle()
 }
 
 // Plays a Game with n players and returns the winner
@@ -693,4 +681,17 @@ func PlayGame(numberOfPlayers int, lexi Lexicon) (int, error) {
 		}
 	}
 	return winner, nil
+}
+
+func reverse(s string) string {
+	rns := []rune(s) // convert to rune
+	for i, j := 0, len(rns)-1; i < j; i, j = i+1, j-1 {
+
+		// swap the letters of the string,
+		// like first with last and so on.
+		rns[i], rns[j] = rns[j], rns[i]
+	}
+
+	// return the reversed string.
+	return string(rns)
 }

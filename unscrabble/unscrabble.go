@@ -119,30 +119,18 @@ func (position *Position) Transpose() {
 	position.Row, position.Column = position.Column, position.Row
 }
 
-// Transpose transposes the tiles of the board.
-// This is achieved using an in-place transformation.
-// This works on the assumption that the board is square.
-
-func Transpose(board Board) {
-	for y := range board {
-		for x := y + 1; x < len(board); x++ {
-			board[y][x].BoardPosition.Transpose()
-			board[x][y].BoardPosition.Transpose()
-			board[y][x], board[x][y] = board[x][y], board[y][x]
-		}
-	}
-}
-
 // BoardTile is a data structure which contains information relating
 // to a possibly empty tile on the board.
 type BoardTile struct {
-	Letter           rune // If Letter is 0 the tile is empty
-	WordMultiplier   int
-	LetterMultiplier int         // If the LetterMultiplier is 0 the tile was a blank RackTile
-	CrossCheckSet    set.RuneSet // If the CrossCheckSet is nil, any tile can be placed
-	CrossScore       int
-	IsAnchor         bool
-	BoardPosition    *Position
+	Letter                 rune // If Letter is 0 the tile is empty
+	WordMultiplier         int
+	LetterMultiplier       int         // If the LetterMultiplier is 0 the tile was a blank RackTile
+	CrossCheckSet          set.RuneSet // If the CrossCheckSet is nil, any tile can be placed
+	CrossScore             int
+	transposeCrossCheckSet set.RuneSet
+	transposeCrossScore    int
+	IsAnchor               bool
+	BoardPosition          *Position
 }
 
 func NewTile(y, x, wordMultiplier, letterMultiplier int) *BoardTile {
@@ -157,11 +145,40 @@ func NewTile(y, x, wordMultiplier, letterMultiplier int) *BoardTile {
 	}
 }
 
+func (tile *BoardTile) Transpose() {
+	tile.BoardPosition.Transpose()
+	tile.CrossCheckSet, tile.transposeCrossCheckSet = tile.transposeCrossCheckSet, tile.CrossCheckSet
+	tile.CrossScore, tile.transposeCrossScore = tile.transposeCrossScore, tile.CrossScore
+}
+
 func (tile *BoardTile) GetAdjacentTile(board Board, vertical, horizontal int) *BoardTile {
 	if tile.BoardPosition.Column+horizontal < 0 || tile.BoardPosition.Column+horizontal >= len(board) {
 		return nil
 	}
 	return board[tile.BoardPosition.Row+vertical][tile.BoardPosition.Column+horizontal]
+}
+
+func (tile *BoardTile) SetIsAnchor(isAnchor bool, board Board, lexi Lexicon) error {
+	if !isAnchor {
+		if !tile.IsAnchor {
+			return errors.New("tile is not an anchor, should not be resetting IsAnchor to false")
+		}
+		if tile.Letter == 0 {
+			return errors.New("tile is empty, letter should be placed before setting IsAnchor to false")
+		}
+
+		// the crossCheckSet is set to the placed character to ensure
+		// Lexicon traversals are constrained to the placed character
+		// when considering new moves that pass through this board position.
+		tile.CrossCheckSet = set.New(len(letterScores))
+		tile.CrossCheckSet.AddRune(tile.Letter)
+		tile.transposeCrossCheckSet = tile.CrossCheckSet
+		tile.CrossScore = 0
+		tile.transposeCrossScore = tile.CrossScore
+	} else {
+		tile.CrossCheckSet, tile.CrossScore = CrossCheck(tile, board, lexi)
+	}
+	return nil
 }
 
 // CrossCheck finds the cross check set and the cross score of a tile.
@@ -218,23 +235,6 @@ func GetSuffixBelow(tile *BoardTile, board Board) (string, int) {
 	return sb.String(), score
 }
 
-func UpdateAdjacentCrossCheckSets(tile *BoardTile, board Board, lexi Lexicon) {
-	currTile := tile
-	for ; currTile != nil && currTile.Letter != 0; currTile = currTile.GetAdjacentTile(board, above, 0) {
-	}
-	if currTile != nil {
-		currTile.CrossCheckSet, currTile.CrossScore = CrossCheck(currTile, board, lexi)
-	}
-
-	currTile = tile
-	for ; currTile != nil && currTile.Letter != 0; currTile = currTile.GetAdjacentTile(board, below, 0) {
-	}
-
-	if currTile != nil {
-		currTile.CrossCheckSet, currTile.CrossScore = CrossCheck(currTile, board, lexi)
-	}
-}
-
 type Board [][]*BoardTile
 
 // NewBoard returns a new empty board (a 2D slice of Tiles) from 2D slices
@@ -255,6 +255,19 @@ func NewBoard(wordMultipliers, letterMultipliers [][]int) Board {
 	}
 	board[boardSize/2][boardSize/2].IsAnchor = true
 	return board
+}
+
+// Transpose transposes the tiles of the board.
+// This is achieved using an in-place transformation.
+// This works on the assumption that the board is square.
+func Transpose(board Board) {
+	for y := range board {
+		for x := y + 1; x < len(board); x++ {
+			board[y][x].Transpose()
+			board[x][y].Transpose()
+			board[y][x], board[x][y] = board[x][y], board[y][x]
+		}
+	}
 }
 
 // GetAnchors finds the anchors of the rows.
@@ -408,13 +421,6 @@ func PerformMove(move *Move, board Board, rack *Rack, lexi Lexicon) {
 	y := move.StartPosition.Row
 	x := move.StartPosition.Column
 
-	if x > 0 {
-		leftTile := board[y][x-1]
-		if leftTile.Letter == 0 {
-			leftTile.IsAnchor = true
-		}
-	}
-
 	for i, char := range move.Word {
 		currTile := board[y][x+i]
 		if currTile.Letter != 0 {
@@ -428,29 +434,39 @@ func PerformMove(move *Move, board Board, rack *Rack, lexi Lexicon) {
 			rack.RemoveRune(char)
 		}
 
-		// the crossCheckSet is set to the placed character to ensure
-		// Lexicon traversals are constrained to the placed character
-		// when considering new moves that pass through this board position.
-		currTile.CrossCheckSet = set.New(len(letterCounts))
-		currTile.CrossCheckSet.AddRune(char)
 		currTile.Letter = char
-		currTile.IsAnchor = false
+		err := currTile.SetIsAnchor(false, board, lexi)
+		if err != nil {
+			panic(err)
+		}
 
-		for _, direction := range []int{above, below} {
-			adjTile := currTile.GetAdjacentTile(board, direction, 0)
-			if adjTile != nil && adjTile.Letter == 0 {
-				adjTile.IsAnchor = true
+		for _, direction := range [2]int{above, below} {
+			adjEmptyTile := currTile
+			for ; adjEmptyTile != nil && adjEmptyTile.Letter != 0; adjEmptyTile = adjEmptyTile.GetAdjacentTile(board, direction, 0) {
+			}
+
+			if adjEmptyTile != nil {
+				adjEmptyTile.SetIsAnchor(true, board, lexi)
 			}
 		}
-		UpdateAdjacentCrossCheckSets(currTile, board, lexi)
 	}
 
-	if (x + len(move.Word)) < len(board) {
-		rightTile := board[y][x+len(move.Word)]
-		if rightTile.Letter == 0 {
-			rightTile.IsAnchor = true
+	// The board is transposed here to ensure that the transposed
+	// cross check is completed, using the placed prefix to the left and
+	// suffix to the right
+	Transpose(board)
+	if x > 0 {
+		leftTile := board[y][x-1]
+		if leftTile.Letter == 0 {
+			leftTile.SetIsAnchor(true, board, lexi)
 		}
 	}
+	if (x + len(move.Word)) < len(board) {
+		rightTile := board[y][x+len(move.Word)]
+		rightTile.SetIsAnchor(true, board, lexi)
+	}
+	Transpose(board)
+
 	if !move.Horizontal {
 		Transpose(board)
 		move.StartPosition.Transpose()

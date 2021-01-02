@@ -25,25 +25,39 @@ func TestTranspose(t *testing.T) {
 		Transpose(tiles)
 		assert.Equal(t, expectedTiles, tiles)
 	})
-	t.Run("transpose square", func(t *testing.T) {
+	t.Run("tiles moved and positions unchanged", func(t *testing.T) {
 
-		tiles := Board{
-			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'b'}},
-			{&BoardTile{Letter: 'c'}, &BoardTile{Letter: 'd'}},
+		transposedBoard := Board{
+			{&BoardTile{BoardPosition: &Position{Row: 0, Column: 0}}, &BoardTile{BoardPosition: &Position{Row: 0, Column: 1}}},
+			{&BoardTile{BoardPosition: &Position{Row: 1, Column: 0}}, &BoardTile{BoardPosition: &Position{Row: 1, Column: 1}}},
 		}
-		expectedTiles := Board{
-			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'c'}},
-			{&BoardTile{Letter: 'b'}, &BoardTile{Letter: 'd'}},
-		}
-		Transpose(tiles)
-		assert.Equal(t, expectedTiles, tiles)
-		Transpose(tiles)
 
-		expectedTiles = Board{
-			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'b'}},
-			{&BoardTile{Letter: 'c'}, &BoardTile{Letter: 'd'}},
+		initialBoard := make(Board, len(transposedBoard))
+		for y := range transposedBoard {
+			initialBoard[y] = make([]*BoardTile, len(transposedBoard[y]))
+			copy(initialBoard[y], transposedBoard[y])
 		}
-		assert.Equal(t, expectedTiles, tiles)
+
+		expectedValues := Board{
+			{&BoardTile{BoardPosition: &Position{Row: 0, Column: 0}}, &BoardTile{BoardPosition: &Position{Row: 0, Column: 1}}},
+			{&BoardTile{BoardPosition: &Position{Row: 1, Column: 0}}, &BoardTile{BoardPosition: &Position{Row: 1, Column: 1}}},
+		}
+
+		Transpose(transposedBoard)
+		for y, row := range transposedBoard {
+			for x := range row {
+				assert.Same(t, initialBoard[y][x], transposedBoard[x][y])
+			}
+		}
+		assert.Equal(t, expectedValues, transposedBoard)
+
+		Transpose(transposedBoard)
+		for y, row := range transposedBoard {
+			for x := range row {
+				assert.Same(t, initialBoard[y][x], transposedBoard[y][x])
+			}
+		}
+		assert.Equal(t, expectedValues, transposedBoard)
 	})
 }
 

@@ -282,14 +282,15 @@ func NewBoard(wordMultipliers, letterMultipliers [][]int) Board {
 	return board
 }
 
-// TODO: check what we need to do about board modifications
 // Transpose transposes the tiles of the board.
 // This is achieved using an in-place transformation.
 // This works on the assumption that the board is square.
 func Transpose(board Board) {
-	for i := range board {
-		for j := i + 1; j < len(board); j++ {
-			board[i][j], board[j][i] = board[j][i], board[i][j]
+	for y := range board {
+		for x := y + 1; x < len(board); x++ {
+			board[y][x].BoardPosition.Transpose()
+			board[x][y].BoardPosition.Transpose()
+			board[y][x], board[x][y] = board[x][y], board[y][x]
 		}
 	}
 }

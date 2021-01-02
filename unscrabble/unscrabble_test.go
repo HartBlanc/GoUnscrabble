@@ -8,31 +8,30 @@ import (
 	assert "github.com/stretchr/testify/assert"
 )
 
-var testTiles = [][]*BoardTile{}
-
 func TestTranspose(t *testing.T) {
 
 	t.Run("transpose empty", func(t *testing.T) {
-		tiles := [][]*BoardTile{{}}
+		tiles := Board{{}}
 		Transpose(tiles)
-		assert.Equal(t, [][]*BoardTile{{}}, tiles)
+		assert.Equal(t, Board{{}}, tiles)
 	})
 	t.Run("transpose single", func(t *testing.T) {
-		tiles := [][]*BoardTile{
+		tiles := Board{
 			{&BoardTile{}},
 		}
-		expectedTiles := [][]*BoardTile{
+		expectedTiles := Board{
 			{&BoardTile{}},
 		}
 		Transpose(tiles)
 		assert.Equal(t, expectedTiles, tiles)
 	})
 	t.Run("transpose square", func(t *testing.T) {
-		tiles := [][]*BoardTile{
+
+		tiles := Board{
 			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'b'}},
 			{&BoardTile{Letter: 'c'}, &BoardTile{Letter: 'd'}},
 		}
-		expectedTiles := [][]*BoardTile{
+		expectedTiles := Board{
 			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'c'}},
 			{&BoardTile{Letter: 'b'}, &BoardTile{Letter: 'd'}},
 		}
@@ -40,7 +39,7 @@ func TestTranspose(t *testing.T) {
 		assert.Equal(t, expectedTiles, tiles)
 		Transpose(tiles)
 
-		expectedTiles = [][]*BoardTile{
+		expectedTiles = Board{
 			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'b'}},
 			{&BoardTile{Letter: 'c'}, &BoardTile{Letter: 'd'}},
 		}
@@ -51,12 +50,12 @@ func TestTranspose(t *testing.T) {
 func TestGetAnchors(t *testing.T) {
 
 	t.Run("no tiles", func(t *testing.T) {
-		tiles := [][]*BoardTile{{}}
+		tiles := Board{{}}
 		expectedAnchors := []*BoardTile{}
 		assert.Equal(t, expectedAnchors, GetAnchors(tiles))
 	})
 	t.Run("all tiles empty", func(t *testing.T) {
-		tiles := [][]*BoardTile{
+		tiles := Board{
 			{&BoardTile{}, &BoardTile{}},
 			{&BoardTile{}, &BoardTile{}},
 		}
@@ -64,7 +63,7 @@ func TestGetAnchors(t *testing.T) {
 		assert.Equal(t, expectedAnchors, GetAnchors(tiles))
 	})
 	t.Run("no empty tiles", func(t *testing.T) {
-		tiles := [][]*BoardTile{
+		tiles := Board{
 			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'a'}},
 			{&BoardTile{Letter: 'a'}, &BoardTile{Letter: 'a'}},
 		}
@@ -77,7 +76,7 @@ func TestGetAnchors(t *testing.T) {
 		left := &BoardTile{BoardPosition: &Position{Row: 1, Column: 0}}
 		right := &BoardTile{BoardPosition: &Position{Row: 1, Column: 2}}
 		below := &BoardTile{BoardPosition: &Position{Row: 2, Column: 1}}
-		tiles := [][]*BoardTile{
+		tiles := Board{
 			{&BoardTile{}, above, &BoardTile{}},
 			{left, &BoardTile{Letter: 'a'}, right},
 			{&BoardTile{}, below, &BoardTile{}},

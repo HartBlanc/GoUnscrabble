@@ -268,6 +268,10 @@ func Transpose(board Board) {
 			board[y][x], board[x][y] = board[x][y], board[y][x]
 		}
 	}
+	// Transpose also flips the cross sets so we need to do the diagonal too
+	for y := range board {
+		board[y][y].Transpose()
+	}
 }
 
 // GetAnchors finds the anchors of the rows.

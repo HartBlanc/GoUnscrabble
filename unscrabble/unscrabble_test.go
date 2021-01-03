@@ -17,47 +17,228 @@ func TestTranspose(t *testing.T) {
 	})
 	t.Run("transpose single", func(t *testing.T) {
 		tiles := Board{
-			{&BoardTile{}},
+			{&BoardTile{BoardPosition: &Position{Row: 0, Column: 0}}},
 		}
 		expectedTiles := Board{
-			{&BoardTile{}},
+			{&BoardTile{BoardPosition: &Position{Row: 0, Column: 0}}},
 		}
 		Transpose(tiles)
 		assert.Equal(t, expectedTiles, tiles)
 	})
-	t.Run("tiles moved and positions unchanged", func(t *testing.T) {
+	t.Run("tiles are moved", func(t *testing.T) {
 
+		initialBoard := Board{
+			{
+				&BoardTile{
+					BoardPosition: &Position{
+						Row:    0,
+						Column: 0,
+					},
+				},
+				&BoardTile{
+					BoardPosition: &Position{
+						Row:    0,
+						Column: 1,
+					},
+				},
+			},
+			{
+				&BoardTile{
+					BoardPosition: &Position{
+						Row:    1,
+						Column: 0,
+					},
+				},
+				&BoardTile{
+					BoardPosition: &Position{
+						Row:    1,
+						Column: 1,
+					},
+				},
+			},
+		}
+		transposedBoard := make(Board, len(initialBoard))
+		for y := range initialBoard {
+			transposedBoard[y] = make(
+				[]*BoardTile,
+				len(initialBoard[y]),
+			)
+			copy(transposedBoard[y], initialBoard[y])
+		}
+		Transpose(transposedBoard)
+		for y, row := range transposedBoard {
+			for x := range row {
+				assert.Same(
+					t,
+					initialBoard[y][x],
+					transposedBoard[x][y],
+				)
+			}
+		}
+
+		Transpose(transposedBoard)
+		for y, row := range transposedBoard {
+			for x := range row {
+				assert.Same(
+					t,
+					initialBoard[y][x],
+					transposedBoard[y][x],
+				)
+			}
+		}
+	})
+	t.Run("cross checks and positions swapped", func(t *testing.T) {
+
+		sets := make(map[rune]set.RuneSet)
+		chars := [8]rune{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}
+		for _, char := range chars {
+			mySet := set.New(1)
+			mySet.AddRune(char)
+			sets[char] = mySet
+		}
 		transposedBoard := Board{
-			{&BoardTile{BoardPosition: &Position{Row: 0, Column: 0}}, &BoardTile{BoardPosition: &Position{Row: 0, Column: 1}}},
-			{&BoardTile{BoardPosition: &Position{Row: 1, Column: 0}}, &BoardTile{BoardPosition: &Position{Row: 1, Column: 1}}},
+			{
+				&BoardTile{
+					CrossCheckSet:          sets['a'],
+					transposeCrossCheckSet: sets['b'],
+					CrossScore:             1,
+					transposeCrossScore:    2,
+					BoardPosition: &Position{
+						Row:    0,
+						Column: 0,
+					},
+				},
+				&BoardTile{
+					CrossCheckSet:          sets['c'],
+					transposeCrossCheckSet: sets['d'],
+					CrossScore:             3,
+					transposeCrossScore:    4,
+					BoardPosition: &Position{
+						Row:    0,
+						Column: 1,
+					},
+				},
+			},
+			{
+				&BoardTile{
+					CrossCheckSet:          sets['e'],
+					transposeCrossCheckSet: sets['f'],
+					CrossScore:             5,
+					transposeCrossScore:    6,
+					BoardPosition: &Position{
+						Row:    1,
+						Column: 0,
+					},
+				},
+				&BoardTile{
+					CrossCheckSet:          sets['g'],
+					transposeCrossCheckSet: sets['h'],
+					CrossScore:             7,
+					transposeCrossScore:    8,
+					BoardPosition: &Position{
+						Row:    1,
+						Column: 1,
+					},
+				},
+			},
 		}
-
-		initialBoard := make(Board, len(transposedBoard))
-		for y := range transposedBoard {
-			initialBoard[y] = make([]*BoardTile, len(transposedBoard[y]))
-			copy(initialBoard[y], transposedBoard[y])
+		// identical values to initial board
+		expectedDoubleTransposeBoard := Board{
+			{
+				&BoardTile{
+					CrossCheckSet:          sets['a'],
+					transposeCrossCheckSet: sets['b'],
+					CrossScore:             1,
+					transposeCrossScore:    2,
+					BoardPosition: &Position{
+						Row:    0,
+						Column: 0,
+					},
+				},
+				&BoardTile{
+					CrossCheckSet:          sets['c'],
+					transposeCrossCheckSet: sets['d'],
+					CrossScore:             3,
+					transposeCrossScore:    4,
+					BoardPosition: &Position{
+						Row:    0,
+						Column: 1,
+					},
+				},
+			},
+			{
+				&BoardTile{
+					CrossCheckSet:          sets['e'],
+					transposeCrossCheckSet: sets['f'],
+					CrossScore:             5,
+					transposeCrossScore:    6,
+					BoardPosition: &Position{
+						Row:    1,
+						Column: 0,
+					},
+				},
+				&BoardTile{
+					CrossCheckSet:          sets['g'],
+					transposeCrossCheckSet: sets['h'],
+					CrossScore:             7,
+					transposeCrossScore:    8,
+					BoardPosition: &Position{
+						Row:    1,
+						Column: 1,
+					},
+				},
+			},
 		}
-
-		expectedValues := Board{
-			{&BoardTile{BoardPosition: &Position{Row: 0, Column: 0}}, &BoardTile{BoardPosition: &Position{Row: 0, Column: 1}}},
-			{&BoardTile{BoardPosition: &Position{Row: 1, Column: 0}}, &BoardTile{BoardPosition: &Position{Row: 1, Column: 1}}},
+		expectedTransposedBoard := Board{
+			{
+				&BoardTile{
+					CrossCheckSet:          sets['b'],
+					transposeCrossCheckSet: sets['a'],
+					CrossScore:             2,
+					transposeCrossScore:    1,
+					BoardPosition: &Position{
+						Row:    0,
+						Column: 0,
+					},
+				},
+				&BoardTile{
+					CrossCheckSet:          sets['f'],
+					transposeCrossCheckSet: sets['e'],
+					CrossScore:             6,
+					transposeCrossScore:    5,
+					BoardPosition: &Position{
+						Row:    0,
+						Column: 1,
+					},
+				},
+			},
+			{
+				&BoardTile{
+					CrossCheckSet:          sets['d'],
+					transposeCrossCheckSet: sets['c'],
+					CrossScore:             4,
+					transposeCrossScore:    3,
+					BoardPosition: &Position{
+						Row:    1,
+						Column: 0,
+					},
+				},
+				&BoardTile{
+					CrossCheckSet:          sets['h'],
+					transposeCrossCheckSet: sets['g'],
+					CrossScore:             8,
+					transposeCrossScore:    7,
+					BoardPosition: &Position{
+						Row:    1,
+						Column: 1,
+					},
+				},
+			},
 		}
-
 		Transpose(transposedBoard)
-		for y, row := range transposedBoard {
-			for x := range row {
-				assert.Same(t, initialBoard[y][x], transposedBoard[x][y])
-			}
-		}
-		assert.Equal(t, expectedValues, transposedBoard)
-
+		assert.Equal(t, expectedTransposedBoard, transposedBoard)
 		Transpose(transposedBoard)
-		for y, row := range transposedBoard {
-			for x := range row {
-				assert.Same(t, initialBoard[y][x], transposedBoard[y][x])
-			}
-		}
-		assert.Equal(t, expectedValues, transposedBoard)
+		assert.Equal(t, expectedDoubleTransposeBoard, transposedBoard)
 	})
 }
 

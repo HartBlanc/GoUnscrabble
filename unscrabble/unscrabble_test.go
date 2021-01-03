@@ -11,9 +11,9 @@ import (
 func TestTranspose(t *testing.T) {
 
 	t.Run("transpose empty", func(t *testing.T) {
-		tiles := Board{{}}
+		tiles := Board{}
 		Transpose(tiles)
-		assert.Equal(t, Board{{}}, tiles)
+		assert.Equal(t, Board{}, tiles)
 	})
 	t.Run("transpose single", func(t *testing.T) {
 		tiles := Board{

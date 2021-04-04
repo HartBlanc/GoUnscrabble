@@ -86,3 +86,17 @@ func (mr *MockLexiconMockRecorder) Label() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Label", reflect.TypeOf((*MockLexicon)(nil).Label))
 }
+
+// FollowEdges mocks base method
+func (m *MockLexicon) FollowEdges(arg0 string) Lexicon {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FollowEdges", arg0)
+	ret0, _ := ret[0].(Lexicon)
+	return ret0
+}
+
+// FollowEdges indicates an expected call of FollowEdges
+func (mr *MockLexiconMockRecorder) FollowEdges(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FollowEdges", reflect.TypeOf((*MockLexicon)(nil).FollowEdges), arg0)
+}

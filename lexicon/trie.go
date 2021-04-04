@@ -8,8 +8,8 @@ import (
 	"example.com/unscrabble/set"
 )
 
-// CreateTrieFromFile builds a trie from a
-// file which has a single word on each line.
+// CreateTrieFromFile builds a trie from a file which has a single word on each
+// line.
 func CreateTrieFromFile(filePath string) *Node {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -30,8 +30,8 @@ func CreateTrieFromFile(filePath string) *Node {
 	return trie
 }
 
-// Insert inserts the word into the trie.
-// It returns a bool representing whether the word was newly inserted.
+// Insert inserts the word into the trie. It returns a bool representing whether
+// the word was newly inserted.
 func (node *Node) Insert(word string) bool {
 	if node.Contains(word) {
 		return false
@@ -54,8 +54,8 @@ func (node *Node) Insert(word string) bool {
 	return true
 }
 
-// Contains identifies whether the word is in the trie.
-// It returns a bool representing whether the word is in the trie.
+// Contains identifies whether the word is in the trie.  It returns a bool
+// representing whether the word is in the trie.
 func (node *Node) Contains(word string) bool {
 	currNode := node
 	for _, char := range word {
@@ -68,8 +68,8 @@ func (node *Node) Contains(word string) bool {
 	return currNode.Terminal
 }
 
-// Delete removes the word from the node, if it is present in the trie.
-// It returns whether the word was present in the trie.
+// Delete removes the word from the node, if it is present in the trie. It
+// returns whether the word was present in the trie.
 func (node *Node) Delete(word string) bool {
 	if !node.Contains(word) {
 		return false
@@ -103,7 +103,9 @@ func (node *Node) Delete(word string) bool {
 
 // ValidLettersBetweenPrefixAndSuffix returns the set of all letters '?'
 // for which there is a word in the node that looks like: '{prefix}?{suffix}'.
-func (node *Node) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) set.RuneMap {
+func (node *Node) ValidLettersBetweenPrefixAndSuffix(
+	prefix, suffix string,
+) set.RuneMap {
 
 	validLetters := make(set.RuneMap, 0)
 	currNode := node
@@ -141,9 +143,17 @@ func (node *Node) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) set.
 	return validLetters
 }
 
-func (node *Node) GenerateNodesWithPruning(validEdge func(rune) bool, preExpandHook func(rune, *Node), postExpandHook func(rune, *Node), terminate func(*Node) bool, processNode func(*Node)) {
+// GenerateNodesWithPruning calls the provided hook while traversing the nodes
+// of the trie rooted at the receiver node using a pruned depth first traversal.
+func (node *Node) GenerateNodesWithPruning(
+	validEdge func(rune) bool,
+	preExpandHook func(rune, *Node),
+	postExpandHook func(rune, *Node),
+	terminate func(*Node) bool,
+	processNode func(*Node),
+) {
+	processNode(node)
 	if terminate(node) {
-		processNode(node)
 		return
 	}
 	for edge, nextNode := range node.NextNodes {
@@ -160,6 +170,20 @@ func (node *Node) GenerateNodesWithPruning(validEdge func(rune) bool, preExpandH
 		)
 		postExpandHook(edge, nextNode)
 	}
+}
+
+// FollowEdges is used for following the edges in a trie and returns the node at
+// the end of the path
+func (node *Node) FollowEdges(word string) *Node {
+	currNode := node
+	for _, char := range word {
+		nextNode, ok := currNode.NextNodes[char]
+		if !ok {
+			return nil
+		}
+		currNode = nextNode
+	}
+	return currNode
 }
 
 // New returns a pointer to a new empty Node.

@@ -2,69 +2,23 @@ package unscrabble
 
 import (
 	"errors"
-	"example.com/unscrabble/set"
 	"fmt"
 	"math/rand"
 	"strings"
+
+	"example.com/unscrabble/set"
 )
 
 var (
 	letterScores = map[rune]int{
-		'a': 1,
-		'b': 4,
-		'c': 4,
-		'd': 2,
-		'e': 1,
-		'f': 4,
-		'g': 1,
-		'h': 3,
-		'i': 1,
-		'j': 10,
-		'k': 5,
-		'l': 2,
-		'm': 4,
-		'n': 2,
-		'o': 1,
-		'p': 4,
-		'q': 10,
-		'r': 1,
-		's': 1,
-		't': 1,
-		'u': 2,
-		'v': 5,
-		'w': 4,
-		'x': 8,
-		'y': 3,
-		'z': 10,
+		'a': 1, 'b': 4, 'c': 4, 'd': 2, 'e': 1, 'f': 4, 'g': 1, 'h': 3, 'i': 1,
+		'j': 10, 'k': 5, 'l': 2, 'm': 4, 'n': 2, 'o': 1, 'p': 4, 'q': 10,
+		'r': 1, 's': 1, 't': 1, 'u': 2, 'v': 5, 'w': 4, 'x': 8, 'y': 3, 'z': 10,
 	}
 	letterCounts = map[rune]int{
-		'*': 2,
-		'a': 5,
-		'b': 1,
-		'c': 1,
-		'd': 2,
-		'e': 7,
-		'f': 1,
-		'g': 1,
-		'h': 1,
-		'i': 4,
-		'j': 1,
-		'k': 1,
-		'l': 2,
-		'm': 1,
-		'n': 2,
-		'o': 4,
-		'p': 1,
-		'q': 1,
-		'r': 2,
-		's': 4,
-		't': 2,
-		'u': 1,
-		'v': 1,
-		'w': 1,
-		'x': 1,
-		'y': 1,
-		'z': 1,
+		'*': 2, 'a': 5, 'b': 1, 'c': 1, 'd': 2, 'e': 7, 'f': 1, 'g': 1, 'h': 1,
+		'i': 4, 'j': 1, 'k': 1, 'l': 2, 'm': 1, 'n': 2, 'o': 4, 'p': 1, 'q': 1,
+		'r': 2, 's': 4, 't': 2, 'u': 1, 'v': 1, 'w': 1, 'x': 1, 'y': 1, 'z': 1,
 	}
 	wwfLetterMultipliers = [][]int{
 		{3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3},
@@ -105,9 +59,16 @@ const (
 
 type Lexicon interface {
 	ValidLettersBetweenPrefixAndSuffix(string, string) set.RuneSet
-	GenerateNodesWithPruning(func(rune) bool, func(rune, Lexicon), func(rune, Lexicon), func(Lexicon) bool, func(Lexicon))
+	GenerateNodesWithPruning(
+		func(rune) bool,
+		func(rune, Lexicon),
+		func(rune, Lexicon),
+		func(Lexicon) bool,
+		func(Lexicon),
+	)
 	Terminal() bool
 	Label() string
+	FollowEdges(string) Lexicon
 }
 
 type Position struct {
@@ -313,7 +274,7 @@ func GetAnchors(board Board) []*BoardTile {
 }
 
 // TODO: allow passing generator function as an argument somehow (abstracting the Lexicon)
-// TODO: how to handle snchor skipping for GADDAG?
+// TODO: how to handle anchor skipping for GADDAG?
 func GetLegalMoves(board Board, rack *Rack, lexi Lexicon) []*Move {
 
 	moves := make([]*Move, 0)
@@ -349,12 +310,20 @@ func GetLegalMoves(board Board, rack *Rack, lexi Lexicon) []*Move {
 	return moves
 }
 
-func GenerateWordsFromAnchorWithTrie(board Board, rack *Rack, anchor *BoardTile, lexi Lexicon, processPrefixWordAndBlanks func(string, string, []bool)) {
+func GenerateWordsFromAnchorWithTrie(
+	board Board,
+	rack *Rack,
+	anchor *BoardTile,
+	lexi Lexicon,
+	processPrefixWordAndBlanks func(string, string, []bool),
+) {
 
 	currDirection := left
 	currBoardTile := anchor.GetAdjacentTile(board, 0, currDirection)
 	inRackAndCrossSet := func(edgeChar rune) bool {
-		return rack.Contains(edgeChar) && (currBoardTile.CrossCheckSet == nil || currBoardTile.CrossCheckSet.Contains(edgeChar))
+		return (rack.Contains(edgeChar) &&
+			(currBoardTile.CrossCheckSet == nil ||
+				currBoardTile.CrossCheckSet.Contains(edgeChar)))
 	}
 
 	blanks := make([]bool, len(board))
@@ -367,7 +336,7 @@ func GenerateWordsFromAnchorWithTrie(board Board, rack *Rack, anchor *BoardTile,
 				rack.RemoveRune(edgeChar)
 			}
 		}
-		currBoardTile = anchor.GetAdjacentTile(board, 0, currDirection)
+		currBoardTile = currBoardTile.GetAdjacentTile(board, 0, currDirection)
 	}
 	toRackShiftTileBack := func(edgeChar rune, nextNode Lexicon) {
 		if currBoardTile.Letter == 0 {
@@ -378,7 +347,7 @@ func GenerateWordsFromAnchorWithTrie(board Board, rack *Rack, anchor *BoardTile,
 				rack.AddRune(edgeChar)
 			}
 		}
-		currBoardTile = anchor.GetAdjacentTile(board, 0, -currDirection)
+		currBoardTile = currBoardTile.GetAdjacentTile(board, 0, -currDirection)
 	}
 
 	untilEdge := func(node Lexicon) bool {
@@ -400,17 +369,47 @@ func GenerateWordsFromAnchorWithTrie(board Board, rack *Rack, anchor *BoardTile,
 	}
 	extendPrefix := func(prefixNode Lexicon) {
 
+		// Save the currBoardTile so that once we have extended the current
+		// prefix to the right we can resume generating all valid prefixes from
+		// the same position.
 		prefixBoardTile := currBoardTile
 		currBoardTile = anchor
 		currDirection = right
 
 		prefix = prefixNode.Label()
-		prefixNode.GenerateNodesWithPruning(inRackAndCrossSet, fromRackShiftTile, toRackShiftTileBack, untilEdge, processWord)
+		prefixNode.GenerateNodesWithPruning(
+			inRackAndCrossSet,
+			fromRackShiftTile,
+			toRackShiftTileBack,
+			untilEdge,
+			processWord,
+		)
 
 		currBoardTile = prefixBoardTile
 		currDirection = left
 	}
-	lexi.GenerateNodesWithPruning(rack.Contains, fromRackShiftTile, toRackShiftTileBack, untilAnchorOrEdge, extendPrefix)
+
+	placedPrefixChars := make([]rune, 0)
+	for adjTile := currBoardTile; adjTile != nil && adjTile.Letter != 0; adjTile = adjTile.GetAdjacentTile(board, left, 0) {
+		currBoardTile = adjTile
+		placedPrefixChars = append(placedPrefixChars, currBoardTile.Letter)
+	}
+
+	// Extend the placed prefix if it exists
+	if len(placedPrefixChars) > 0 {
+		placedPrefixNode := lexi.FollowEdges(string(placedPrefixChars))
+		extendPrefix(placedPrefixNode)
+		return
+	}
+
+	// otherwise generate and extend all valid prefixes
+	lexi.GenerateNodesWithPruning(
+		rack.Contains,
+		fromRackShiftTile,
+		toRackShiftTileBack,
+		untilAnchorOrEdge,
+		extendPrefix,
+	)
 }
 
 // PerformMove places tiles on the board from the rack.

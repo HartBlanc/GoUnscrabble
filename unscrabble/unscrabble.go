@@ -9,52 +9,11 @@ import (
 	"example.com/unscrabble/set"
 )
 
-var (
-	letterScores = map[rune]int{
-		'a': 1, 'b': 4, 'c': 4, 'd': 2, 'e': 1, 'f': 4, 'g': 1, 'h': 3, 'i': 1,
-		'j': 10, 'k': 5, 'l': 2, 'm': 4, 'n': 2, 'o': 1, 'p': 4, 'q': 10,
-		'r': 1, 's': 1, 't': 1, 'u': 2, 'v': 5, 'w': 4, 'x': 8, 'y': 3, 'z': 10,
-	}
-	letterCounts = map[rune]int{
-		'*': 2, 'a': 5, 'b': 1, 'c': 1, 'd': 2, 'e': 7, 'f': 1, 'g': 1, 'h': 1,
-		'i': 4, 'j': 1, 'k': 1, 'l': 2, 'm': 1, 'n': 2, 'o': 4, 'p': 1, 'q': 1,
-		'r': 2, 's': 4, 't': 2, 'u': 1, 'v': 1, 'w': 1, 'x': 1, 'y': 1, 'z': 1,
-	}
-	wwfLetterMultipliers = [][]int{
-		{3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3},
-		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-		{1, 1, 3, 1, 2, 1, 2, 1, 3, 1, 1},
-		{1, 1, 1, 3, 1, 1, 1, 3, 1, 1, 1},
-		{1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1},
-		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-		{1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1},
-		{1, 1, 1, 3, 1, 1, 1, 3, 1, 1, 1},
-		{1, 1, 3, 1, 2, 1, 2, 1, 3, 1, 1},
-		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-		{3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3},
-	}
-	wwfWordMultipliers = [][]int{
-		{1, 1, 3, 1, 1, 1, 1, 1, 3, 1, 1},
-		{1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1},
-		{3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3},
-		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-		{1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1},
-		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-		{3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3},
-		{1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1},
-		{1, 1, 3, 1, 1, 1, 1, 1, 3, 1, 1},
-	}
-)
-
 const (
-	bingoPremium = 35
-	rackSize     = 7
-	left         = -1
-	right        = 1
-	above        = -1
-	below        = 1
+	left  = -1
+	right = 1
+	above = -1
+	below = 1
 )
 
 type Lexicon interface {
@@ -482,116 +441,6 @@ type Move struct {
 	Word          string
 	BlankTiles    []bool
 	Score         int
-}
-
-func (move *Move) CalculateScore(board Board) (int, error) {
-	y := move.StartPosition.Row
-	x := move.StartPosition.Column
-
-	if len(move.BlankTiles) != len(move.Word) {
-		return 0, errors.New("blanks should be same length as word")
-	}
-
-	if len(move.Word) > (len(board) - x) {
-		return 0, errors.New("word extends beyond end of board")
-	}
-
-	crossScore := 0
-	horizontalScore := 0
-	horizontalWordMultiplier := 1
-	tilesPlaced := 0
-
-	for i, char := range move.Word {
-		tile := board[y][x+i]
-		letterScore := letterScores[char] * tile.LetterMultiplier
-		if move.BlankTiles[i] {
-			letterScore = 0
-		}
-		horizontalScore += letterScore
-
-		if tile.Letter == 0 {
-			horizontalWordMultiplier *= tile.WordMultiplier
-			if tile.CrossCheckSet != nil {
-				crossScore += (tile.CrossScore + letterScore) * tile.WordMultiplier
-			}
-			tilesPlaced += 1
-		}
-	}
-	horizontalScore *= horizontalWordMultiplier
-	score := horizontalScore + crossScore
-	if tilesPlaced == rackSize {
-		score += bingoPremium
-	}
-	return score, nil
-}
-
-// The rack is an abstract data type which is essentially a multi-set.
-// However, the rack also maintains a traditional set based on the presence
-// of at least one count of the letter being present in the multiset.
-// This allows for efficient set operations to be calculated with other sets of
-// interest (e.g. cross-check sets and trie edge sets).
-type Rack struct {
-	letterCounts map[rune]int
-	letterSet    set.RuneSet
-	tileCount    int
-}
-
-func newRack() *Rack {
-	return &Rack{
-		letterSet: set.New(rackSize),
-	}
-}
-
-func (rack *Rack) AddRune(letter rune) {
-	rack.letterCounts[letter]++
-	rack.tileCount++
-	if letter != '*' {
-		rack.letterSet.AddRune(letter)
-	}
-}
-
-func (rack *Rack) RemoveRune(letter rune) {
-	if rack.letterCounts[letter] == 0 {
-		return
-	}
-	rack.letterCounts[letter]--
-	rack.tileCount--
-	if rack.letterCounts[letter] == 0 && letter != '*' {
-		rack.letterSet.RemoveRune(letter)
-	}
-}
-
-// Contains tells us whether the rack contains a letter.
-// If the rack contains a blank tile, it contains all letters.
-func (rack *Rack) Contains(letter rune) bool {
-	if rack.letterCounts['*'] > 0 {
-		return true
-	}
-	return rack.letterSet.Contains(letter)
-}
-
-// Has tile asks if the rack actually contains the tile.
-// Wildcards are treated identically to all other tiles.
-func (rack *Rack) HasTile(tileLetter rune) bool {
-	return rack.letterCounts[tileLetter] > 0
-}
-
-func (rack *Rack) Intersection(otherRuneSet set.RuneSet) set.RuneSet {
-	if rack.letterCounts['*'] > 0 {
-		return otherRuneSet
-	}
-	return rack.letterSet.Intersection(otherRuneSet)
-}
-
-func (rack *Rack) FillRack(letterBag LetterBag) error {
-	for rack.tileCount < rackSize && len(letterBag) > 0 {
-		randomLetter, err := letterBag.PopRandomLetter()
-		if err != nil {
-			return err
-		}
-		rack.AddRune(randomLetter)
-	}
-	return nil
 }
 
 // The letter bag is an abstract data structure which allows for

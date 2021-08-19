@@ -1,6 +1,9 @@
 package movegen
 
-import "example.com/unscrabble/unscrabble/model"
+import (
+	"example.com/unscrabble/lexicon"
+	"example.com/unscrabble/unscrabble/model"
+)
 
 type triePrefixGenerator struct {
 	trieMoveGenerator *TrieMoveGenerator
@@ -11,36 +14,44 @@ type triePrefixExtender struct {
 }
 
 type TrieMoveGenerator struct {
-	trie          *Trie
+	trie          *lexicon.Trie
+	board         model.Board
 	rack          model.Rack
-	candidateTile model.Tile
-	moveWord      []rune
+	candidateTile *model.Tile
 	moveBlanks    []bool
 }
 
-func (t *TrieMoveGenerator) GenerateMoves(model.Board) []*model.Move {
-	moves := []*Move{}
-	for y, row := range board {
-		for x, tile := range row {
+func (t *TrieMoveGenerator) GenerateMoves(board model.Board) []*model.Move {
+	t.board = board
+
+	t.moveBlanks = nil
+	for i := 0; i < len(board.Tiles); i++ {
+		t.moveBlanks = append(t.moveBlanks, false)
+	}
+
+	var moves []*model.Move
+	for _, row := range board.Tiles {
+		for _, tile := range row {
 			if tile.IsAnchor {
 				moves = append(moves, t.generateMovesForAnchor(tile)...)
 			}
 		}
 	}
+	return moves
 }
 
-func (t *TrieMoveGenerator) generateMovesForAnchor(anchor model.Tile) []*model.Move {
-	moves := []*Move{}
+func (t *TrieMoveGenerator) generateMovesForAnchor(anchor *model.Tile) []*model.Move {
+	moves := []*model.Move{}
 	for _, prefix := range t.generatePrefixes(anchor) {
 		moves = append(moves, t.extendPrefix(prefix)...)
 	}
 	return moves
 }
 
-func (t TrieMoveGenerator) generatePrefixes(anchor model.Tile) []string {
+func (t TrieMoveGenerator) generatePrefixes(anchor *model.Tile) []string {
 	placedPrefixChars := make([]rune, 0)
-	for adjTile := currBoardTile; adjTile != nil && adjTile.Letter != 0; adjTile = adjTile.GetAdjacentTile(board, left, 0) {
-		placedPrefixChars = append(placedPrefixChars, currBoardTile.Letter)
+	for adjTile := t.candidateTile; adjTile != nil && adjTile.Letter != 0; adjTile = adjTile.GetAdjacentTile(t.board, 0, -1) {
+		placedPrefixChars = append(placedPrefixChars, t.candidateTile.Letter)
 	}
 
 	// Extend the placed prefix if it exists
@@ -48,53 +59,45 @@ func (t TrieMoveGenerator) generatePrefixes(anchor model.Tile) []string {
 		return []string{string(placedPrefixChars)}
 	}
 
+	var prefixes []string
+	appendToPrefixes := func(node *lexicon.Trie) {
+		prefixes = append(prefixes, node.Label)
+	}
+
 	// otherwise generate and extend all valid prefixes
-	lexi.GenerateNodesWithPruning(
-		rack.Contains,
-		fromRackShiftTile,
-		toRackShiftTileBack,
-		untilAnchorOrEdge,
-		extendPrefix,
+	t.trie.GenerateNodesWithPruning(
+		t.rack.Contains,
+		t.addLetterOrBlankToMove,
+		t.removeLetterOrBlankFromMove,
+		t.prefixExtendedToAnchorOrEdge,
+		appendToPrefixes,
 	)
+
+	return prefixes
 }
 
-func (t TrieMoveGenerator) takeBlankOrLetterFromRack(letter rune) rune {}
-
-func (t TrieMoveGenerator) nextCandidateTile(direction int) {
-	t.candidateTile = t.candidateTile.GetAdjacentTile(t.board, 0, direction)
-}
-
-func (t TrieMoveGenerator) addLetterOrBlankToMove(letter rune) {
+func (t TrieMoveGenerator) addLetterOrBlankToMove(letter rune, node *lexicon.Trie) {
 	if t.rack.HasTile('*') {
 		t.rack.RemoveRune('*')
-		t.moveBlanks[len(t.moveWord)-1] = true
+		t.moveBlanks[len(node.Label)-1] = true
 		return
 	}
 	t.rack.RemoveRune(letter)
 }
 
-func (t TrieMoveGenerator) toRackShiftTileBack(edgeChar rune, nextNode Lexicon) {
-	if currBoardTile.Letter == 0 {
-		if blanks[len(nextNode.Label())-1] {
-			rack.AddRune('*')
-			blanks[len(nextNode.Label())-1] = false
-		} else {
-			rack.AddRune(edgeChar)
-		}
+func (t TrieMoveGenerator) removeLetterOrBlankFromMove(letter rune, node *lexicon.Trie) {
+	if lastTileWasBlank := t.moveBlanks[len(node.Label)-1]; lastTileWasBlank {
+		t.rack.AddRune('*')
+		t.moveBlanks[len(node.Label)-1] = false
+		return
 	}
-	currBoardTile = currBoardTile.GetAdjacentTile(board, 0, -currDirection)
+	t.rack.AddRune(letter)
 }
 
-func (t triePrefixGenerator) IsEdgeValid(edge rune) bool {
-	return t.trieMoveGenerator.Rack[edge]
+func (t TrieMoveGenerator) prefixExtendedToAnchorOrEdge(node *lexicon.Trie) bool {
+	currTile := t.candidateTile.GetAdjacentTile(t.board, 0, len(node.Label))
+	if currTile == nil {
+		return true
+	}
+	return currTile.IsAnchor && node.Label != ""
 }
-func (t triePrefixGenerator) PreExpandHook(edge rune) {
-	t.trieMoveGenerator.addBlankOrLetterToMove(edge)
-	t.trieMoveGenerator.nextCandidateTile(left)
-}
-func (t triePrefixGenerator) PostExpandHook(edge rune) {
-
-}
-func (t triePrefixGenerator) IsFinished(node *Node) {}
-
-func (t triePrefixGenerator) IsFinished(node *Node) {}

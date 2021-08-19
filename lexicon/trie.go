@@ -4,13 +4,18 @@ import (
 	"bufio"
 	"os"
 	"strings"
-
-	"example.com/unscrabble/set"
 )
+
+// Trie is a data structure used for efficient prefix searches
+type Trie struct {
+	Label     string
+	Terminal  bool
+	NextNodes map[rune]*Trie
+}
 
 // CreateTrieFromFile builds a trie from a file which has a single word on each
 // line.
-func CreateTrieFromFile(filePath string) *Node {
+func CreateTrieFromFile(filePath string) *Trie {
 	file, err := os.Open(filePath)
 	if err != nil {
 		panic(err)
@@ -32,19 +37,19 @@ func CreateTrieFromFile(filePath string) *Node {
 
 // Insert inserts the word into the trie. It returns a bool representing whether
 // the word was newly inserted.
-func (node *Node) Insert(word string) bool {
-	if node.Contains(word) {
+func (n *Trie) Insert(word string) bool {
+	if n.Contains(word) {
 		return false
 	}
 	var stringBuilder strings.Builder
-	currNode := node
+	currNode := n
 	for _, char := range word {
 		stringBuilder.WriteRune(char)
 		if _, ok := currNode.NextNodes[char]; !ok {
-			currNode.NextNodes[char] = &Node{
+			currNode.NextNodes[char] = &Trie{
 				Label:     stringBuilder.String(),
 				Terminal:  false,
-				NextNodes: map[rune]*Node{},
+				NextNodes: map[rune]*Trie{},
 			}
 		}
 		currNode = currNode.NextNodes[char]
@@ -56,8 +61,8 @@ func (node *Node) Insert(word string) bool {
 
 // Contains identifies whether the word is in the trie.  It returns a bool
 // representing whether the word is in the trie.
-func (node *Node) Contains(word string) bool {
-	currNode := node
+func (n *Trie) Contains(word string) bool {
+	currNode := n
 	for _, char := range word {
 		nextNode, ok := currNode.NextNodes[char]
 		if !ok {
@@ -70,14 +75,14 @@ func (node *Node) Contains(word string) bool {
 
 // Delete removes the word from the node, if it is present in the trie. It
 // returns whether the word was present in the trie.
-func (node *Node) Delete(word string) bool {
-	if !node.Contains(word) {
+func (n *Trie) Delete(word string) bool {
+	if !n.Contains(word) {
 		return false
 	}
 
-	var prefixWordTerminalNode *Node
+	var prefixWordTerminalNode *Trie
 	var suffixInitialChar rune
-	currNode := node
+	currNode := n
 
 	for i, char := range word {
 		if currNode.Terminal && i != len(word) {
@@ -89,7 +94,7 @@ func (node *Node) Delete(word string) bool {
 	if prefixWordTerminalNode == nil {
 		if len(currNode.NextNodes) == 0 {
 			delete(
-				node.NextNodes,
+				n.NextNodes,
 				[]rune(word)[0],
 			)
 		} else {
@@ -103,12 +108,10 @@ func (node *Node) Delete(word string) bool {
 
 // ValidLettersBetweenPrefixAndSuffix returns the set of all letters '?'
 // for which there is a word in the node that looks like: '{prefix}?{suffix}'.
-func (node *Node) ValidLettersBetweenPrefixAndSuffix(
-	prefix, suffix string,
-) set.RuneMap {
+func (n *Trie) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[rune]bool {
 
-	validLetters := make(set.RuneMap, 0)
-	currNode := node
+	validLetters := map[rune]bool{}
+	currNode := n
 	prefixOkay := true
 
 	for _, prefixChar := range prefix {
@@ -137,7 +140,7 @@ func (node *Node) ValidLettersBetweenPrefixAndSuffix(
 			}
 		}
 		if suffixOkay && currNode.Terminal {
-			validLetters.AddRune(middleLetter)
+			validLetters[middleLetter] = true
 		}
 	}
 	return validLetters
@@ -145,22 +148,22 @@ func (node *Node) ValidLettersBetweenPrefixAndSuffix(
 
 // GenerateNodesWithPruning calls the provided hook while traversing the nodes
 // of the trie rooted at the receiver node using a pruned depth first traversal.
-func (node *Node) GenerateNodesWithPruning(
+func (n *Trie) GenerateNodesWithPruning(
 	validEdge func(rune) bool,
-	preExpandHook func(rune, *Node),
-	postExpandHook func(rune, *Node),
-	terminate func(*Node) bool,
-	processNode func(*Node),
+	preExpandHook func(rune, *Trie),
+	postExpandHook func(rune, *Trie),
+	terminate func(*Trie) bool,
+	processNode func(*Trie),
 ) {
-	processNode(node)
-	if terminate(node) {
+	processNode(n)
+	if terminate(n) {
 		return
 	}
-	for edge, nextNode := range node.NextNodes {
+	for edge, nextNode := range n.NextNodes {
 		if !validEdge(edge) {
 			continue
 		}
-		preExpandHook(edge, nextNode)
+		preExpandHook(edge, n)
 		nextNode.GenerateNodesWithPruning(
 			validEdge,
 			preExpandHook,
@@ -168,14 +171,14 @@ func (node *Node) GenerateNodesWithPruning(
 			terminate,
 			processNode,
 		)
-		postExpandHook(edge, nextNode)
+		postExpandHook(edge, n)
 	}
 }
 
 // FollowEdges is used for following the edges in a trie and returns the node at
 // the end of the path
-func (node *Node) FollowEdges(word string) *Node {
-	currNode := node
+func (n *Trie) FollowEdges(word string) *Trie {
+	currNode := n
 	for _, char := range word {
 		nextNode, ok := currNode.NextNodes[char]
 		if !ok {
@@ -187,10 +190,10 @@ func (node *Node) FollowEdges(word string) *Node {
 }
 
 // New returns a pointer to a new empty Node.
-func New() *Node {
-	return &Node{
+func New() *Trie {
+	return &Trie{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
 }

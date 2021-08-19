@@ -59,10 +59,10 @@ func (tile *Tile) transpose() {
 func (tile *Tile) GetAdjacentTile(board Board, vertical, horizontal int) *Tile {
 	currRow := tile.BoardPosition.Row
 	currColumn := tile.BoardPosition.Column
-	if currColumn+horizontal < 0 || currColumn+horizontal >= len(board.tiles) {
+	if currColumn+horizontal < 0 || currColumn+horizontal >= len(board.Tiles) {
 		return nil
 	}
-	return board.tiles[currRow+vertical][currColumn+horizontal]
+	return board.Tiles[currRow+vertical][currColumn+horizontal]
 }
 
 // SetIsAnchor is used for setting the isAnchor property of a Tile safely
@@ -108,8 +108,8 @@ func (tile *Tile) getSuffixBelow(board Board, letterScores map[rune]int) (string
 	y := tile.BoardPosition.Row + 1
 	score := 0
 
-	for ; (y < len(board.tiles)) && board.tiles[y][x].Letter != 0; y++ {
-		placedTile := board.tiles[y][x]
+	for ; (y < len(board.Tiles)) && board.Tiles[y][x].Letter != 0; y++ {
+		placedTile := board.Tiles[y][x]
 		sb.WriteRune(placedTile.Letter)
 		score += letterScores[placedTile.Letter]
 	}
@@ -124,8 +124,8 @@ func (tile *Tile) getPrefixAbove(board Board, letterScores map[rune]int) (string
 	y := tile.BoardPosition.Row - 1
 	score := 0
 
-	for ; (y >= 0) && board.tiles[y][x].Letter != 0; y-- {
-		placedTile := board.tiles[y][x]
+	for ; (y >= 0) && board.Tiles[y][x].Letter != 0; y-- {
+		placedTile := board.Tiles[y][x]
 		sb.WriteRune(placedTile.Letter)
 		score += letterScores[placedTile.Letter]
 	}
@@ -152,7 +152,7 @@ func (t *Tile) Empty() bool {
 
 // Board is a collection of Tiles
 type Board struct {
-	tiles                  [][]*Tile
+	Tiles                  [][]*Tile
 	crossCheckSetGenerator CrossCheckSetGenerator
 }
 
@@ -173,10 +173,10 @@ func NewBoard(crossCheckSetGenerator CrossCheckSetGenerator, wordMultipliers, le
 		}
 	}
 	board := Board{
-		tiles:                  tiles,
+		Tiles:                  tiles,
 		crossCheckSetGenerator: crossCheckSetGenerator,
 	}
-	board.tiles[boardSize/2][boardSize/2].SetIsAnchor(true, board)
+	board.Tiles[boardSize/2][boardSize/2].SetIsAnchor(true, board)
 	return board
 }
 
@@ -184,16 +184,16 @@ func NewBoard(crossCheckSetGenerator CrossCheckSetGenerator, wordMultipliers, le
 // This is achieved using an in-place transformation.
 // This works on the assumption that the board is square.
 func Transpose(board Board) {
-	for y := range board.tiles {
-		for x := y + 1; x < len(board.tiles); x++ {
-			board.tiles[y][x].transpose()
-			board.tiles[x][y].transpose()
-			board.tiles[y][x], board.tiles[x][y] = board.tiles[x][y], board.tiles[y][x]
+	for y := range board.Tiles {
+		for x := y + 1; x < len(board.Tiles); x++ {
+			board.Tiles[y][x].transpose()
+			board.Tiles[x][y].transpose()
+			board.Tiles[y][x], board.Tiles[x][y] = board.Tiles[x][y], board.Tiles[y][x]
 		}
 	}
 	// Transpose also flips the cross sets so we need to do the diagonal too
-	for y := range board.tiles {
-		board.tiles[y][y].transpose()
+	for y := range board.Tiles {
+		board.Tiles[y][y].transpose()
 	}
 }
 
@@ -201,29 +201,29 @@ func Transpose(board Board) {
 // Tiles which are adjacent (horizontally or vertically) to a non-empty
 // Tile.
 func GetAnchors(board Board) []*Tile {
-	anchors := make([]*Tile, 0, len(board.tiles)*len(board.tiles))
-	for y, row := range board.tiles {
+	anchors := make([]*Tile, 0, len(board.Tiles)*len(board.Tiles))
+	for y, row := range board.Tiles {
 		for x, tile := range row {
 			if !(tile.Letter == 0) {
 				continue
 			}
 
-			if y > 0 && board.tiles[y-1][x].Letter != 0 {
+			if y > 0 && board.Tiles[y-1][x].Letter != 0 {
 				anchors = append(anchors, tile)
 				continue
 			}
 
-			if y < (len(board.tiles)-1) && board.tiles[y+1][x].Letter != 0 {
+			if y < (len(board.Tiles)-1) && board.Tiles[y+1][x].Letter != 0 {
 				anchors = append(anchors, tile)
 				continue
 			}
 
-			if x > 0 && board.tiles[y][x-1].Letter != 0 {
+			if x > 0 && board.Tiles[y][x-1].Letter != 0 {
 				anchors = append(anchors, tile)
 				continue
 			}
 
-			if x < (len(board.tiles)-1) && board.tiles[y][x+1].Letter != 0 {
+			if x < (len(board.Tiles)-1) && board.Tiles[y][x+1].Letter != 0 {
 				anchors = append(anchors, tile)
 				continue
 			}

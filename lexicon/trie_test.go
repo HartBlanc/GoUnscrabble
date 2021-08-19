@@ -1,17 +1,17 @@
 package lexicon
 
 import (
-	"example.com/unscrabble/set"
-	assert "github.com/stretchr/testify/assert"
 	"testing"
+
+	assert "github.com/stretchr/testify/assert"
 )
 
 func TestNew(t *testing.T) {
 
-	expectedTrie := &Node{
+	expectedTrie := &Trie{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
 
 	assert.Equal(t, expectedTrie, New())
@@ -19,33 +19,33 @@ func TestNew(t *testing.T) {
 
 func TestInsertEmpty(t *testing.T) {
 
-	trie := &Node{
+	trie := &Trie{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
 	assert.True(t, trie.Insert("abc"))
 
-	cNode := &Node{
+	cNode := &Trie{
 		Label:     "abc",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
-	bNode := &Node{
+	bNode := &Trie{
 		Label:     "ab",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'c': cNode},
+		NextNodes: map[rune]*Trie{'c': cNode},
 	}
-	aNode := &Node{
+	aNode := &Trie{
 		Label:     "a",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'b': bNode},
+		NextNodes: map[rune]*Trie{'b': bNode},
 	}
 
-	expectedTrie := &Node{
+	expectedTrie := &Trie{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'a': aNode},
+		NextNodes: map[rune]*Trie{'a': aNode},
 	}
 
 	assert.Equal(t, expectedTrie, trie)
@@ -53,50 +53,50 @@ func TestInsertEmpty(t *testing.T) {
 
 func TestInsertDisjoint(t *testing.T) {
 
-	trie := &Node{
+	trie := &Trie{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
 	assert.True(t, trie.Insert("abc"))
 	assert.True(t, trie.Insert("def"))
 
-	cNode := &Node{
+	cNode := &Trie{
 		Label:     "abc",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
-	bNode := &Node{
+	bNode := &Trie{
 		Label:     "ab",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'c': cNode},
+		NextNodes: map[rune]*Trie{'c': cNode},
 	}
-	aNode := &Node{
+	aNode := &Trie{
 		Label:     "a",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'b': bNode},
+		NextNodes: map[rune]*Trie{'b': bNode},
 	}
 
-	fNode := &Node{
+	fNode := &Trie{
 		Label:     "def",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
-	eNode := &Node{
+	eNode := &Trie{
 		Label:     "de",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'f': fNode},
+		NextNodes: map[rune]*Trie{'f': fNode},
 	}
-	dNode := &Node{
+	dNode := &Trie{
 		Label:     "d",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'e': eNode},
+		NextNodes: map[rune]*Trie{'e': eNode},
 	}
 
-	expectedTrie := &Node{
+	expectedTrie := &Trie{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'d': dNode, 'a': aNode},
+		NextNodes: map[rune]*Trie{'d': dNode, 'a': aNode},
 	}
 
 	assert.Equal(t, expectedTrie, trie)
@@ -104,46 +104,46 @@ func TestInsertDisjoint(t *testing.T) {
 
 func TestInsertSharedPrefix(t *testing.T) {
 
-	trie := &Node{
+	trie := &Trie{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
 	assert.True(t, trie.Insert("abce"))
 	assert.True(t, trie.Insert("abcd"))
 
-	eNode := &Node{
+	eNode := &Trie{
 		Label:     "abce",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
 
-	dNode := &Node{
+	dNode := &Trie{
 		Label:     "abcd",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
 
-	cNode := &Node{
+	cNode := &Trie{
 		Label:     "abc",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'d': dNode, 'e': eNode},
+		NextNodes: map[rune]*Trie{'d': dNode, 'e': eNode},
 	}
-	bNode := &Node{
+	bNode := &Trie{
 		Label:     "ab",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'c': cNode},
+		NextNodes: map[rune]*Trie{'c': cNode},
 	}
-	aNode := &Node{
+	aNode := &Trie{
 		Label:     "a",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'b': bNode},
+		NextNodes: map[rune]*Trie{'b': bNode},
 	}
 
-	expectedTrie := &Node{
+	expectedTrie := &Trie{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'a': aNode},
+		NextNodes: map[rune]*Trie{'a': aNode},
 	}
 
 	assert.Equal(t, expectedTrie, trie)
@@ -151,22 +151,22 @@ func TestInsertSharedPrefix(t *testing.T) {
 
 func TestInsertSameWordTwice(t *testing.T) {
 
-	trie := &Node{
+	trie := &Trie{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
 	assert.True(t, trie.Insert("a"))
 
-	aNode := &Node{
+	aNode := &Trie{
 		Label:     "a",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
-	expectedTrie := &Node{
+	expectedTrie := &Trie{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'a': aNode},
+		NextNodes: map[rune]*Trie{'a': aNode},
 	}
 
 	assert.Equal(t, expectedTrie, trie)
@@ -280,7 +280,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "o")
 		assert.Equal(
 			t,
-			set.RuneMap{
+			map[rune]bool{
 				'd': true,
 			},
 			crossSet,
@@ -290,7 +290,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("do", "")
 		assert.Equal(
 			t,
-			set.RuneMap{
+			map[rune]bool{
 				'g': true,
 			},
 			crossSet,
@@ -300,7 +300,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "")
 		assert.Equal(
 			t,
-			set.RuneMap{'a': true},
+			map[rune]bool{'a': true},
 			crossSet,
 		)
 	})
@@ -308,7 +308,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("ca", "s")
 		assert.Equal(
 			t,
-			set.RuneMap{
+			map[rune]bool{
 				'r': true,
 				't': true,
 			},
@@ -319,7 +319,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("", "z")
 		assert.Equal(
 			t,
-			set.RuneMap{},
+			map[rune]bool{},
 			crossSet,
 		)
 	})
@@ -327,7 +327,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("z", "")
 		assert.Equal(
 			t,
-			set.RuneMap{},
+			map[rune]bool{},
 			crossSet,
 		)
 	})
@@ -335,7 +335,7 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("a", "")
 		assert.Equal(
 			t,
-			set.RuneMap{},
+			map[rune]bool{},
 			crossSet,
 		)
 	})
@@ -343,122 +343,122 @@ func TestValidLettersBetweenPrefixAndSuffix(t *testing.T) {
 		crossSet := trie.ValidLettersBetweenPrefixAndSuffix("d", "n")
 		assert.Equal(
 			t,
-			set.RuneMap{},
+			map[rune]bool{},
 			crossSet,
 		)
 	})
 }
 
-func createTrie() *Node {
-	carsNode := &Node{
+func createTrie() *Trie {
+	carsNode := &Trie{
 		Label:     "cars",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
-	catsNode := &Node{
+	catsNode := &Trie{
 		Label:     "cats",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
-	carNode := &Node{
+	carNode := &Trie{
 		Label:     "car",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{'s': carsNode},
+		NextNodes: map[rune]*Trie{'s': carsNode},
 	}
-	catNode := &Node{
+	catNode := &Trie{
 		Label:     "cat",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{'s': catsNode},
+		NextNodes: map[rune]*Trie{'s': catsNode},
 	}
-	caNode := &Node{
+	caNode := &Trie{
 		Label:     "ca",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'r': carNode, 't': catNode},
+		NextNodes: map[rune]*Trie{'r': carNode, 't': catNode},
 	}
-	cNode := &Node{
+	cNode := &Trie{
 		Label:     "c",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'a': caNode},
+		NextNodes: map[rune]*Trie{'a': caNode},
 	}
-	dogsNode := &Node{
+	dogsNode := &Trie{
 		Label:     "dogs",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
-	dogNode := &Node{
+	dogNode := &Trie{
 		Label:     "dog",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{'s': dogsNode},
+		NextNodes: map[rune]*Trie{'s': dogsNode},
 	}
-	doneNode := &Node{
+	doneNode := &Trie{
 		Label:     "done",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
-	donNode := &Node{
+	donNode := &Trie{
 		Label:     "don",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'e': doneNode},
+		NextNodes: map[rune]*Trie{'e': doneNode},
 	}
-	doNode := &Node{
+	doNode := &Trie{
 		Label:     "do",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{'n': donNode, 'g': dogNode},
+		NextNodes: map[rune]*Trie{'n': donNode, 'g': dogNode},
 	}
-	dNode := &Node{
+	dNode := &Trie{
 		Label:     "d",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'o': doNode},
+		NextNodes: map[rune]*Trie{'o': doNode},
 	}
-	earsNode := &Node{
+	earsNode := &Trie{
 		Label:     "ears",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
-	earNode := &Node{
+	earNode := &Trie{
 		Label:     "ear",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{'s': earsNode},
+		NextNodes: map[rune]*Trie{'s': earsNode},
 	}
-	eatsNode := &Node{
+	eatsNode := &Trie{
 		Label:     "eats",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
-	eatNode := &Node{
+	eatNode := &Trie{
 		Label:     "eat",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{'s': eatsNode},
+		NextNodes: map[rune]*Trie{'s': eatsNode},
 	}
-	eaNode := &Node{
+	eaNode := &Trie{
 		Label:     "ea",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'r': earNode, 't': eatNode},
+		NextNodes: map[rune]*Trie{'r': earNode, 't': eatNode},
 	}
-	eNode := &Node{
+	eNode := &Trie{
 		Label:     "e",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'a': eaNode},
+		NextNodes: map[rune]*Trie{'a': eaNode},
 	}
-	beNode := &Node{
+	beNode := &Trie{
 		Label:     "be",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
-	bNode := &Node{
+	bNode := &Trie{
 		Label:     "b",
 		Terminal:  false,
-		NextNodes: map[rune]*Node{'e': beNode},
+		NextNodes: map[rune]*Trie{'e': beNode},
 	}
-	aNode := &Node{
+	aNode := &Trie{
 		Label:     "a",
 		Terminal:  true,
-		NextNodes: map[rune]*Node{},
+		NextNodes: map[rune]*Trie{},
 	}
-	trie := &Node{
+	trie := &Trie{
 		Label:    "",
 		Terminal: false,
-		NextNodes: map[rune]*Node{
+		NextNodes: map[rune]*Trie{
 			'a': aNode,
 			'b': bNode,
 			'c': cNode,

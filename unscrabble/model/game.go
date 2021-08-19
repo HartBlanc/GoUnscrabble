@@ -58,10 +58,10 @@ func NewGame(
 		)
 	}
 
-	players := make([]Player, numPlayers)
-	for _, player := range players {
-		player.rack = NewRack(rackSize)
-		player.rack.FillRack(letterBag)
+	var players []Player
+	for i := 0; i < numPlayers; i++ {
+		players = append(players, Player{rack: NewRack(rackSize)})
+		players[i].rack.FillRack(letterBag)
 	}
 
 	game := Game{

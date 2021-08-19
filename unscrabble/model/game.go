@@ -4,8 +4,8 @@ import (
 	"fmt"
 )
 
-type Strategy interface {
-	SelectMove()
+type MovePicker interface {
+	PickMove()
 }
 
 type Lexicon interface{}
@@ -15,7 +15,7 @@ type Player struct {
 	rack     *Rack
 	turns    []*Move
 	score    int
-	strategy Strategy
+	strategy MovePicker
 }
 
 type Configuration struct {

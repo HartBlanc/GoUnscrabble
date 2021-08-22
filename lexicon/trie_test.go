@@ -6,7 +6,7 @@ import (
 	assert "github.com/stretchr/testify/assert"
 )
 
-func TestNew(t *testing.T) {
+func TestNewTrieNode(t *testing.T) {
 
 	expectedTrie := &TrieNode{
 		Label:     "",
@@ -14,7 +14,7 @@ func TestNew(t *testing.T) {
 		NextNodes: map[rune]*TrieNode{},
 	}
 
-	assert.Equal(t, expectedTrie, New())
+	assert.Equal(t, expectedTrie, NewTrieNode())
 }
 
 func TestInsertEmpty(t *testing.T) {
@@ -24,7 +24,7 @@ func TestInsertEmpty(t *testing.T) {
 		Terminal:  false,
 		NextNodes: map[rune]*TrieNode{},
 	}
-	assert.True(t, trie.Insert("abc"))
+	trie.Insert("abc")
 
 	cNode := &TrieNode{
 		Label:     "abc",
@@ -58,8 +58,8 @@ func TestInsertDisjoint(t *testing.T) {
 		Terminal:  false,
 		NextNodes: map[rune]*TrieNode{},
 	}
-	assert.True(t, trie.Insert("abc"))
-	assert.True(t, trie.Insert("def"))
+	trie.Insert("abc")
+	trie.Insert("def")
 
 	cNode := &TrieNode{
 		Label:     "abc",
@@ -109,8 +109,8 @@ func TestInsertSharedPrefix(t *testing.T) {
 		Terminal:  false,
 		NextNodes: map[rune]*TrieNode{},
 	}
-	assert.True(t, trie.Insert("abce"))
-	assert.True(t, trie.Insert("abcd"))
+	trie.Insert("abce")
+	trie.Insert("abcd")
 
 	eNode := &TrieNode{
 		Label:     "abce",
@@ -156,7 +156,7 @@ func TestInsertSameWordTwice(t *testing.T) {
 		Terminal:  false,
 		NextNodes: map[rune]*TrieNode{},
 	}
-	assert.True(t, trie.Insert("a"))
+	trie.Insert("a")
 
 	aNode := &TrieNode{
 		Label:     "a",
@@ -170,7 +170,7 @@ func TestInsertSameWordTwice(t *testing.T) {
 	}
 
 	assert.Equal(t, expectedTrie, trie)
-	assert.False(t, trie.Insert("a"))
+	trie.Insert("a")
 	assert.Equal(t, expectedTrie, trie)
 }
 
@@ -207,12 +207,7 @@ func TestContains(t *testing.T) {
 	for i := range testCases {
 		testCase := testCases[i]
 		t.Run(testCase.Name, func(t *testing.T) {
-
-			assert.Equal(
-				t,
-				testCase.ExpectedContains,
-				trie.Contains(testCase.Word),
-			)
+			assert.Equal(t, testCase.ExpectedContains, trie.Contains(testCase.Word))
 		})
 	}
 }
@@ -221,41 +216,33 @@ func TestDelete(t *testing.T) {
 	t.Run("empty string", func(t *testing.T) {
 
 		trie := createTrie()
-		assert.False(t, trie.Delete(""))
+		trie.Delete("")
 		assert.Equal(t, createTrie(), trie)
 	})
 
 	t.Run("word not present", func(t *testing.T) {
 
 		trie := createTrie()
-		assert.False(t, trie.Delete("missing"))
+		trie.Delete("missing")
 		assert.Equal(t, createTrie(), trie)
 	})
 
 	t.Run("word has prefix", func(t *testing.T) {
 
 		trie := createTrie()
-		assert.True(t, trie.Delete("cars"))
+		trie.Delete("cars")
 		expectedTrie := createTrie()
 		delete(expectedTrie.NextNodes['c'].NextNodes['a'].NextNodes['r'].NextNodes, 's')
-		assert.Equal(
-			t,
-			expectedTrie,
-			trie,
-		)
+		assert.Equal(t, expectedTrie, trie)
 	})
 
 	t.Run("word is prefix", func(t *testing.T) {
 		trie := createTrie()
-		assert.True(t, trie.Delete("car"))
+		trie.Delete("car")
 
 		expectedTrie := createTrie()
 		expectedTrie.NextNodes['c'].NextNodes['a'].NextNodes['r'].Terminal = false
-		assert.Equal(
-			t,
-			expectedTrie,
-			trie,
-		)
+		assert.Equal(t, expectedTrie, trie)
 	})
 
 	t.Run("no prefixes", func(t *testing.T) {
@@ -265,11 +252,7 @@ func TestDelete(t *testing.T) {
 		expectedTrie := createTrie()
 		delete(expectedTrie.NextNodes, 'b')
 
-		assert.Equal(
-			t,
-			expectedTrie,
-			trie,
-		)
+		assert.Equal(t, expectedTrie, trie)
 	})
 }
 

@@ -26,7 +26,7 @@ func TestTrieMoveGeneratorGeneratesMoves(t *testing.T) {
 	}
 	testBoard := model.NewBoard(MockCrossCheckSetGenerator{}, emptyMultipliers, emptyMultipliers)
 
-	testTrieRoot := lexicon.New()
+	testTrieRoot := lexicon.NewTrieNode()
 	testTrieRoot.Insert("inarack")
 	testTrieRoot.Insert("notinarack")
 

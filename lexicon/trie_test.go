@@ -11,7 +11,7 @@ func TestNewTrieNode(t *testing.T) {
 	expectedTrie := &TrieNode{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 
 	assert.Equal(t, expectedTrie, NewTrieNode())
@@ -22,14 +22,14 @@ func TestInsertEmpty(t *testing.T) {
 	trie := &TrieNode{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	trie.Insert("abc")
 
 	cNode := &TrieNode{
 		Label:     "abc",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	bNode := &TrieNode{
 		Label:     "ab",
@@ -56,7 +56,7 @@ func TestInsertDisjoint(t *testing.T) {
 	trie := &TrieNode{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	trie.Insert("abc")
 	trie.Insert("def")
@@ -64,7 +64,7 @@ func TestInsertDisjoint(t *testing.T) {
 	cNode := &TrieNode{
 		Label:     "abc",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	bNode := &TrieNode{
 		Label:     "ab",
@@ -80,7 +80,7 @@ func TestInsertDisjoint(t *testing.T) {
 	fNode := &TrieNode{
 		Label:     "def",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	eNode := &TrieNode{
 		Label:     "de",
@@ -107,7 +107,7 @@ func TestInsertSharedPrefix(t *testing.T) {
 	trie := &TrieNode{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	trie.Insert("abce")
 	trie.Insert("abcd")
@@ -115,13 +115,13 @@ func TestInsertSharedPrefix(t *testing.T) {
 	eNode := &TrieNode{
 		Label:     "abce",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 
 	dNode := &TrieNode{
 		Label:     "abcd",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 
 	cNode := &TrieNode{
@@ -154,14 +154,14 @@ func TestInsertSameWordTwice(t *testing.T) {
 	trie := &TrieNode{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	trie.Insert("a")
 
 	aNode := &TrieNode{
 		Label:     "a",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	expectedTrie := &TrieNode{
 		Label:     "",
@@ -336,12 +336,12 @@ func createTrie() *TrieNode {
 	carsNode := &TrieNode{
 		Label:     "cars",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	catsNode := &TrieNode{
 		Label:     "cats",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	carNode := &TrieNode{
 		Label:     "car",
@@ -366,7 +366,7 @@ func createTrie() *TrieNode {
 	dogsNode := &TrieNode{
 		Label:     "dogs",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	dogNode := &TrieNode{
 		Label:     "dog",
@@ -376,7 +376,7 @@ func createTrie() *TrieNode {
 	doneNode := &TrieNode{
 		Label:     "done",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	donNode := &TrieNode{
 		Label:     "don",
@@ -396,7 +396,7 @@ func createTrie() *TrieNode {
 	earsNode := &TrieNode{
 		Label:     "ears",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	earNode := &TrieNode{
 		Label:     "ear",
@@ -406,7 +406,7 @@ func createTrie() *TrieNode {
 	eatsNode := &TrieNode{
 		Label:     "eats",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	eatNode := &TrieNode{
 		Label:     "eat",
@@ -426,7 +426,7 @@ func createTrie() *TrieNode {
 	beNode := &TrieNode{
 		Label:     "be",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	bNode := &TrieNode{
 		Label:     "b",
@@ -436,7 +436,7 @@ func createTrie() *TrieNode {
 	aNode := &TrieNode{
 		Label:     "a",
 		Terminal:  true,
-		NextNodes: map[rune]*TrieNode{},
+		NextNodes: make(map[rune]*TrieNode),
 	}
 	trie := &TrieNode{
 		Label:    "",

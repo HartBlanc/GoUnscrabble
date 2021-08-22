@@ -65,6 +65,24 @@ func (tile *Tile) GetAdjacentTile(board Board, vertical, horizontal int) *Tile {
 	return board.Tiles[currRow+vertical][currColumn+horizontal]
 }
 
+// GetAdjacentTileOrSentinels gets the tile adjacent to tile in board and returns a
+// sentinel tile if the tile is out of bounds
+func (tile *Tile) GetAdjacentTileOrSentinel(board Board, vertical, horizontal int) *Tile {
+	currRow := tile.BoardPosition.Row
+	currColumn := tile.BoardPosition.Column
+	if currColumn+horizontal < 0 || currColumn+horizontal >= len(board.Tiles) {
+		sentinel := &Tile{
+			CrossCheckSet: make(map[rune]bool),
+			BoardPosition: &Position{
+				Column: currColumn + horizontal,
+				Row:    currRow + vertical,
+			},
+		}
+		return sentinel
+	}
+	return board.Tiles[currRow+vertical][currColumn+horizontal]
+}
+
 // SetIsAnchor is used for setting the isAnchor property of a Tile safely
 func (tile *Tile) SetIsAnchor(isAnchor bool, board Board) error {
 	if isAnchor {
@@ -176,7 +194,7 @@ func NewBoard(crossCheckSetGenerator CrossCheckSetGenerator, wordMultipliers, le
 		Tiles:                  tiles,
 		crossCheckSetGenerator: crossCheckSetGenerator,
 	}
-	board.Tiles[boardSize/2][boardSize/2].SetIsAnchor(true, board)
+	board.Tiles[boardSize/2][boardSize/2].IsAnchor = true
 	return board
 }
 

@@ -21,6 +21,26 @@ func NewRack(rackSize int) *Rack {
 	}
 }
 
+// Copy copies a rack
+func (r Rack) Copy() Rack {
+
+	copyLetterCounts := make(map[rune]int, len(r.letterCounts))
+	for key, value := range r.letterCounts {
+		copyLetterCounts[key] = value
+	}
+	copyLetterSet := make(map[rune]bool, len(r.letterSet))
+	for key, value := range r.letterSet {
+		copyLetterSet[key] = value
+	}
+
+	return Rack{
+		letterCounts: copyLetterCounts,
+		letterSet:    copyLetterSet,
+		tileCount:    r.tileCount,
+		capacity:     r.capacity,
+	}
+}
+
 func (rack *Rack) AddRune(letter rune) {
 	rack.letterCounts[letter]++
 	rack.tileCount++
@@ -43,10 +63,7 @@ func (rack *Rack) RemoveRune(letter rune) {
 // Contains tells us whether the rack contains a letter.
 // If the rack contains a blank tile, it contains all letters.
 func (rack *Rack) Contains(letter rune) bool {
-	if rack.letterCounts['*'] > 0 {
-		return true
-	}
-	return rack.letterSet[letter]
+	return rack.letterSet[letter] || rack.letterCounts['*'] > 0
 }
 
 // Has tile asks if the rack actually contains the tile.

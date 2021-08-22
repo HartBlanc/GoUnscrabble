@@ -6,16 +6,16 @@ import (
 	"strings"
 )
 
-// Trie is a data structure used for efficient prefix searches
-type Trie struct {
+// TrieNode is a data structure used for efficient prefix searches
+type TrieNode struct {
 	Label     string
 	Terminal  bool
-	NextNodes map[rune]*Trie
+	NextNodes map[rune]*TrieNode
 }
 
 // CreateTrieFromFile builds a trie from a file which has a single word on each
 // line.
-func CreateTrieFromFile(filePath string) *Trie {
+func CreateTrieFromFile(filePath string) *TrieNode {
 	file, err := os.Open(filePath)
 	if err != nil {
 		panic(err)
@@ -37,7 +37,7 @@ func CreateTrieFromFile(filePath string) *Trie {
 
 // Insert inserts the word into the trie. It returns a bool representing whether
 // the word was newly inserted.
-func (n *Trie) Insert(word string) bool {
+func (n *TrieNode) Insert(word string) bool {
 	if n.Contains(word) {
 		return false
 	}
@@ -46,10 +46,10 @@ func (n *Trie) Insert(word string) bool {
 	for _, char := range word {
 		stringBuilder.WriteRune(char)
 		if _, ok := currNode.NextNodes[char]; !ok {
-			currNode.NextNodes[char] = &Trie{
+			currNode.NextNodes[char] = &TrieNode{
 				Label:     stringBuilder.String(),
 				Terminal:  false,
-				NextNodes: map[rune]*Trie{},
+				NextNodes: map[rune]*TrieNode{},
 			}
 		}
 		currNode = currNode.NextNodes[char]
@@ -61,7 +61,7 @@ func (n *Trie) Insert(word string) bool {
 
 // Contains identifies whether the word is in the trie.  It returns a bool
 // representing whether the word is in the trie.
-func (n *Trie) Contains(word string) bool {
+func (n *TrieNode) Contains(word string) bool {
 	currNode := n
 	for _, char := range word {
 		nextNode, ok := currNode.NextNodes[char]
@@ -75,12 +75,12 @@ func (n *Trie) Contains(word string) bool {
 
 // Delete removes the word from the node, if it is present in the trie. It
 // returns whether the word was present in the trie.
-func (n *Trie) Delete(word string) bool {
+func (n *TrieNode) Delete(word string) bool {
 	if !n.Contains(word) {
 		return false
 	}
 
-	var prefixWordTerminalNode *Trie
+	var prefixWordTerminalNode *TrieNode
 	var suffixInitialChar rune
 	currNode := n
 
@@ -108,7 +108,7 @@ func (n *Trie) Delete(word string) bool {
 
 // ValidLettersBetweenPrefixAndSuffix returns the set of all letters '?'
 // for which there is a word in the node that looks like: '{prefix}?{suffix}'.
-func (n *Trie) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[rune]bool {
+func (n *TrieNode) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[rune]bool {
 
 	validLetters := map[rune]bool{}
 	currNode := n
@@ -146,38 +146,51 @@ func (n *Trie) ValidLettersBetweenPrefixAndSuffix(prefix, suffix string) map[run
 	return validLetters
 }
 
-// GenerateNodesWithPruning calls the provided hook while traversing the nodes
+func (n *TrieNode) IsRoot() bool {
+	return n.Label == ""
+}
+
+func (n *TrieNode) IncomingEdge() rune {
+	if n.IsRoot() {
+		return 0
+	}
+	return rune(n.Label[len(n.Label)-1])
+}
+
+type EdgePruner interface {
+	IsValidEdge(edge rune) bool
+	Terminate(node *TrieNode) bool
+}
+
+type Visitor interface {
+	Visit(*TrieNode)
+	Exit(*TrieNode)
+}
+
+type PrunerVisitor interface {
+	EdgePruner
+	Visitor
+}
+
+// VisitNodesWithPruning calls the provided hook while traversing the nodes
 // of the trie rooted at the receiver node using a pruned depth first traversal.
-func (n *Trie) GenerateNodesWithPruning(
-	validEdge func(rune) bool,
-	preExpandHook func(rune, *Trie),
-	postExpandHook func(rune, *Trie),
-	terminate func(*Trie) bool,
-	processNode func(*Trie),
-) {
-	processNode(n)
-	if terminate(n) {
-		return
-	}
-	for edge, nextNode := range n.NextNodes {
-		if !validEdge(edge) {
-			continue
+func (n *TrieNode) VisitNodesWithPruning(prunerVisitor PrunerVisitor) {
+	prunerVisitor.Visit(n)
+
+	if !prunerVisitor.Terminate(n) {
+		for edge, nextNode := range n.NextNodes {
+			if prunerVisitor.IsValidEdge(edge) {
+				nextNode.VisitNodesWithPruning(prunerVisitor)
+			}
 		}
-		preExpandHook(edge, n)
-		nextNode.GenerateNodesWithPruning(
-			validEdge,
-			preExpandHook,
-			postExpandHook,
-			terminate,
-			processNode,
-		)
-		postExpandHook(edge, n)
 	}
+
+	prunerVisitor.Exit(n)
 }
 
 // FollowEdges is used for following the edges in a trie and returns the node at
 // the end of the path
-func (n *Trie) FollowEdges(word string) *Trie {
+func (n *TrieNode) FollowEdges(word string) *TrieNode {
 	currNode := n
 	for _, char := range word {
 		nextNode, ok := currNode.NextNodes[char]
@@ -189,11 +202,11 @@ func (n *Trie) FollowEdges(word string) *Trie {
 	return currNode
 }
 
-// New returns a pointer to a new empty Node.
-func New() *Trie {
-	return &Trie{
+// New returns a pointer to a new empty TrieNode.
+func New() *TrieNode {
+	return &TrieNode{
 		Label:     "",
 		Terminal:  false,
-		NextNodes: map[rune]*Trie{},
+		NextNodes: map[rune]*TrieNode{},
 	}
 }

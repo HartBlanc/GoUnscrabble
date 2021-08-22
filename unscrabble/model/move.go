@@ -9,20 +9,24 @@ import (
 type Move struct {
 	StartPosition *Position
 	Horizontal    bool // true is horizontal, false is vertical
-	Word          string
-	BlankTiles    []bool
+	Word          Word
 	Score         int
+}
+
+type Word struct {
+	Chars      string
+	BlankTiles []bool
 }
 
 func (move *Move) CalculateScore(board Board, letterScores map[rune]int, rackSize, bingoPremium int) (int, error) {
 	y := move.StartPosition.Row
 	x := move.StartPosition.Column
 
-	if len(move.BlankTiles) != len(move.Word) {
+	if len(move.Word.BlankTiles) != len(move.Word.Chars) {
 		return 0, errors.New("blanks should be same length as word")
 	}
 
-	if len(move.Word) > (len(board.tiles) - x) {
+	if len(move.Word.Chars) > (len(board.Tiles) - x) {
 		return 0, errors.New("word extends beyond end of board.tiles")
 	}
 
@@ -31,10 +35,10 @@ func (move *Move) CalculateScore(board Board, letterScores map[rune]int, rackSiz
 	horizontalWordMultiplier := 1
 	tilesPlaced := 0
 
-	for i, char := range move.Word {
-		tile := board.tiles[y][x+i]
+	for i, char := range move.Word.Chars {
+		tile := board.Tiles[y][x+i]
 		letterScore := letterScores[char] * tile.LetterMultiplier
-		if move.BlankTiles[i] {
+		if move.Word.BlankTiles[i] {
 			letterScore = 0
 		}
 		horizontalScore += letterScore

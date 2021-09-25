@@ -5,7 +5,7 @@ import (
 )
 
 type MovePicker interface {
-	PickMove()
+	PickMove(Board, Rack) *Move
 }
 
 type Lexicon interface{}

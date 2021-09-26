@@ -32,7 +32,7 @@ func TestTrieMoveGeneratorGeneratesMoves(t *testing.T) {
 
 	testRack := model.NewRack(10)
 	for _, char := range "inarack" {
-		testRack.AddRune(char)
+		testRack.AddLetter(char)
 	}
 
 	testTrieMoveGen := triemovegen.NewTrieMoveGenertator(testTrieRoot)

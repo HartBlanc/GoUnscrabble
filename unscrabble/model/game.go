@@ -29,7 +29,7 @@ type Configuration struct {
 
 // Game represents a single game
 type Game struct {
-	letterBag    LetterBag
+	letterBag    RandomLetterBag
 	players      []Player
 	board        Board
 	lexicon      Lexicon
@@ -47,7 +47,7 @@ func NewGame(
 
 	// TODO: make a crosscheckset generator
 	board := NewBoard(nil, wordMultipliers, letterMultipliers)
-	letterBag := NewLetterBag(letterCounts)
+	letterBag := NewRandomLetterBag(letterCounts)
 	if (numPlayers * rackSize) < len(letterBag) {
 		return nil, fmt.Errorf(
 			"too many players (%v) for the rackSize (%v) and number of "+
@@ -61,7 +61,7 @@ func NewGame(
 	var players []Player
 	for i := 0; i < numPlayers; i++ {
 		players = append(players, Player{rack: NewRack(rackSize)})
-		players[i].rack.FillRack(letterBag)
+		players[i].rack.Fill(&letterBag)
 	}
 
 	game := Game{
@@ -157,4 +157,4 @@ func (p *Player) SelectMove(game *Game) *Move {
 	return nil
 }
 
-func (p *Player) ReplaceRack(letterbag LetterBag) {}
+func (p *Player) ReplaceRack(letterbag RandomLetterBag) {}

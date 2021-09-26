@@ -10,19 +10,19 @@ import (
 
 func TestNewLetterBagReturnsExpectedLetterBag(t *testing.T) {
 	letterCounts := map[rune]int{'a': 2, 'b': 1, 'c': 3}
-	letterBag := model.NewLetterBag(letterCounts)
+	letterBag := model.NewRandomLetterBag(letterCounts)
 
 	expectedContents := []rune{'a', 'a', 'b', 'c', 'c', 'c'}
 	assert.ElementsMatch(t, expectedContents, letterBag)
 }
 
-func TestPopRandomLetterRemovesAndReturnsLetters(t *testing.T) {
+func TestGetLetterRemovesAndReturnsLetters(t *testing.T) {
 	letterCounts := map[rune]int{'a': 2, 'b': 1, 'c': 3}
-	letterBag := model.NewLetterBag(letterCounts)
+	letterBag := model.NewRandomLetterBag(letterCounts)
 
 	var letters []rune
 	for i := 0; i < 6; i++ {
-		letter, err := letterBag.PopRandomLetter()
+		letter, err := letterBag.GetLetter()
 		require.NoError(t, err)
 		letters = append(letters, letter)
 		assert.Len(t, letterBag, 6-(i+1))

@@ -122,9 +122,9 @@ func (t *prefixResultGenerator) Visit(node *lexicon.TrieNode) {
 		return
 	}
 	if t.rack.HasTile(node.IncomingEdge()) {
-		t.rack.RemoveRune(node.IncomingEdge())
+		t.rack.RemoveLetter(node.IncomingEdge())
 	} else if t.rack.HasTile('*') {
-		t.rack.RemoveRune('*')
+		t.rack.RemoveLetter('*')
 		t.prefixBlanks[len(node.Label)-1] = true
 	}
 
@@ -151,11 +151,11 @@ func (t *prefixResultGenerator) Exit(node *lexicon.TrieNode) {
 		return
 	}
 	if lastTileWasBlank := t.prefixBlanks[len(node.Label)-1]; lastTileWasBlank {
-		t.rack.AddRune('*')
+		t.rack.AddLetter('*')
 		t.prefixBlanks[len(node.Label)-1] = false
 		return
 	}
-	t.rack.AddRune(node.IncomingEdge())
+	t.rack.AddLetter(node.IncomingEdge())
 }
 
 type partialPrefixResult struct {
@@ -224,9 +224,9 @@ func (t *prefixExtender) Visit(node *lexicon.TrieNode) {
 
 	if t.currTile.Empty() {
 		if t.rack.HasTile(node.IncomingEdge()) {
-			t.rack.RemoveRune(node.IncomingEdge())
+			t.rack.RemoveLetter(node.IncomingEdge())
 		} else if t.rack.HasTile('*') {
-			t.rack.RemoveRune('*')
+			t.rack.RemoveLetter('*')
 			t.blanks[len(node.Label)-1] = true
 		}
 	}
@@ -242,18 +242,18 @@ func (t *prefixExtender) Exit(node *lexicon.TrieNode) {
 		return
 	}
 
-	currTileIsEmpty := t.currTile.Empty()
+	currTileHasLetter := t.currTile.Empty()
 	t.currTile = t.currTile.GetAdjacentTile(t.board, 0, -1)
 
-	if !currTileIsEmpty {
+	if !currTileHasLetter {
 		return
 	}
 
 	if lastTileWasBlank := t.blanks[len(node.Label)-1]; lastTileWasBlank {
-		t.rack.AddRune('*')
+		t.rack.AddLetter('*')
 		t.blanks[len(node.Label)-1] = false
 		return
 	}
 
-	t.rack.AddRune(node.IncomingEdge())
+	t.rack.AddLetter(node.IncomingEdge())
 }

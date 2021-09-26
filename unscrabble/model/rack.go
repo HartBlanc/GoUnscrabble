@@ -1,5 +1,22 @@
 package model
 
+// LetterGetter is for getting letters to fill the rack with
+type LetterGetter interface {
+	// GetLetter gets a letter, and should return an error if the getter does not have any letters
+	GetLetter() (rune, error)
+	HasLetter() bool
+}
+
+// NewRack is for creating a new empty rack
+func NewRack(rackSize int) *Rack {
+	return &Rack{
+		letterCounts: map[rune]int{},
+		letterSet:    map[rune]bool{},
+		tileCount:    0,
+		capacity:     rackSize,
+	}
+}
+
 // The rack is an abstract data type which is essentially a multi-set.
 // However, the rack also maintains a traditional set based on the presence
 // of at least one count of the letter being present in the multiset.
@@ -10,15 +27,6 @@ type Rack struct {
 	letterSet    map[rune]bool
 	tileCount    int
 	capacity     int
-}
-
-func NewRack(rackSize int) *Rack {
-	return &Rack{
-		letterCounts: map[rune]int{},
-		letterSet:    map[rune]bool{},
-		tileCount:    0,
-		capacity:     rackSize,
-	}
 }
 
 // Copy copies a rack
@@ -41,21 +49,21 @@ func (r Rack) Copy() Rack {
 	}
 }
 
-func (rack *Rack) AddRune(letter rune) {
+// AddLetter adds a new letter to the rack
+func (rack *Rack) AddLetter(letter rune) {
 	rack.letterCounts[letter]++
 	rack.tileCount++
-	if letter != '*' {
-		rack.letterSet[letter] = true
-	}
+	rack.letterSet[letter] = true
 }
 
-func (rack *Rack) RemoveRune(letter rune) {
+// RemoveLetter removes an existing letter from the rack. It panics if the letter is not in the rack.
+func (rack *Rack) RemoveLetter(letter rune) {
 	if rack.letterCounts[letter] == 0 {
-		return
+		panic("tried to remove a letter but it's not actually in the rack!")
 	}
 	rack.letterCounts[letter]--
 	rack.tileCount--
-	if rack.letterCounts[letter] == 0 && letter != '*' {
+	if rack.letterCounts[letter] == 0 {
 		rack.letterSet[letter] = false
 	}
 }
@@ -68,17 +76,14 @@ func (rack *Rack) Contains(letter rune) bool {
 
 // Has tile asks if the rack actually contains the tile.
 // Wildcards are treated identically to all other tiles.
-func (rack *Rack) HasTile(tileLetter rune) bool {
-	return rack.letterCounts[tileLetter] > 0
+func (rack *Rack) HasTile(letter rune) bool {
+	return rack.letterSet[letter]
 }
 
-func (rack *Rack) FillRack(letterBag LetterBag) error {
-	for rack.tileCount < rack.capacity && len(letterBag) > 0 {
-		randomLetter, err := letterBag.PopRandomLetter()
-		if err != nil {
-			return err
-		}
-		rack.AddRune(randomLetter)
+// Fill fills the rack with tiles from a letterGetter
+func (rack *Rack) Fill(letterGetter LetterGetter) {
+	for rack.tileCount < rack.capacity && letterGetter.HasLetter() {
+		letter, _ := letterGetter.GetLetter()
+		rack.AddLetter(letter)
 	}
-	return nil
 }

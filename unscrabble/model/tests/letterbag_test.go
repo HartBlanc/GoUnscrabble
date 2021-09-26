@@ -32,3 +32,17 @@ func TestGetLetterRemovesAndReturnsLetters(t *testing.T) {
 	assert.ElementsMatch(t, expectedContents, letters)
 	assert.Empty(t, letterBag)
 }
+
+func TestHasLetterReturnsFalseIfEmpty(t *testing.T) {
+	letterCounts := map[rune]int{'a': 0}
+	emptyLetterBag := model.NewRandomLetterBag(letterCounts)
+	assert.Empty(t, emptyLetterBag)
+	assert.False(t, emptyLetterBag.HasLetter())
+}
+
+func TestHasLetterReturnsTrueIfNotEmpty(t *testing.T) {
+	letterCounts := map[rune]int{'a': 1}
+	letterBag := model.NewRandomLetterBag(letterCounts)
+	assert.Len(t, letterBag, 1)
+	assert.True(t, letterBag.HasLetter())
+}
